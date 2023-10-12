@@ -15,6 +15,8 @@ bot = Bot(token)
 router = Router()
 dp = Dispatcher()
 chat_ids = 0
+conn = ""
+cursor = ""
 try:
     # localhost; 5432; postgres
     # пытаемся подключиться к базе данных
@@ -22,6 +24,16 @@ try:
     cursor = conn.cursor()
     cursor.execute('Select chat_id from chat_list')
     chat_ids = cursor.fetchall()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            username TEXT,
+            full_name TEXT
+        )
+    """)
+    # Сохранение изменений
+    conn.commit()
     print(chat_ids)
 except:
     # в случае сбоя подключения будет выведено сообщение в STDOUT
@@ -31,6 +43,13 @@ except:
 async def new_chat_member(update: types.ChatMemberUpdated):
     if update.new_chat_member.status == 'member':
         user = update.new_chat_member.user
+        # Добавление информации о новом участнике в базу данных
+        cursor.execute("""
+                    INSERT INTO users (user_id, username, full_name) VALUES (%s, %s, %s)
+                """, (user.id, user.username, user.full_name))
+
+        # Сохранение изменений
+        conn.commit()
         await bot.send_message(update.chat.id, f'Привет, {user.full_name}, как дела? Ваш ID: {user.id}')
 
 # @dp.message(F.animation)
@@ -44,7 +63,7 @@ async def new_chat_member(update: types.ChatMemberUpdated):
 # async def user_joined_chat(message: types.Message):
 #     print('Users changed')
 
-@router.message(Command(commands='help'))
+@dp.message(Command(commands='help'))
 async def process_help_command(message: Message):
     await message.answer(text='/help')
 # @dp.message(lambda message: message.text.startswith('/ban'))
@@ -59,7 +78,7 @@ async def process_help_command(message: Message):
 async def cmd_random(message: types.Message):
     builder = InlineKeyboardBuilder()
     builder.add(types.InlineKeyboardButton(
-        text="Нажми меня, чтобы отправить цветы Насте",
+        text="Нажми меня, чтобы отправить цветы Марине",
         callback_data="random_value")
     )
     await message.answer(
@@ -68,7 +87,7 @@ async def cmd_random(message: types.Message):
     )
 
 
-@dp.callback_query(F.data == "random_value")
+@dp.callback_query()
 async def send_random_value(callback: types.CallbackQuery):
     await callback.message.answer(str("цветы отправлены"))
 
