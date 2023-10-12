@@ -5,8 +5,7 @@ from aiogram import types, Dispatcher, Bot
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram import F, Router, types
 from aiogram.filters import Command
-from aiogram.types import Message
-
+from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 
 token = "6348779855:AAH7RgMVxgJs_U-Ys2bXd87kyaImAQK5GCE"
 
@@ -85,7 +84,21 @@ async def cmd_random(message: types.Message):
         "Нажмите на кнопку, чтобы отправить цветы",
         reply_markup=builder.as_markup()
     )
+@dp.message(Command(commands='start'))
+async def start_command(message: types.Message):
+    # Получение информации о всех пользователях из базы данных
+    cursor.execute("SELECT username FROM users")
+    usernames = cursor.fetchall()
 
+    builder = InlineKeyboardBuilder()
+    builder.add(types.InlineKeyboardButton(
+        text=f"{usernames}",
+        callback_data="random_value")
+    )
+    await message.answer(
+        "Нажмите на кнопку, чтобы отправить цветы",
+        reply_markup=builder.as_markup()
+    )
 
 @dp.callback_query()
 async def send_random_value(callback: types.CallbackQuery):
