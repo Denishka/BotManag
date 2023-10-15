@@ -6,7 +6,11 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram import F, Router, types
 from aiogram.filters import Command
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
-
+from aiogram.filters import CommandStart
+from aiogram.types import FSInputFile, Message
+from aiogram.fsm.context import FSMContext
+from aiogram.filters import Command
+from aiogram.filters.state import State, StatesGroup
 token = "6348779855:AAH7RgMVxgJs_U-Ys2bXd87kyaImAQK5GCE"
 
 # bot = telegram.Bot(token)
@@ -42,29 +46,61 @@ except:
 async def new_chat_member(update: types.ChatMemberUpdated):
     if update.new_chat_member.status == 'member':
         user = update.new_chat_member.user
-        # Добавление информации о новом участнике в базу данных
+        # Проверка, существует ли пользователь в базе данных
         cursor.execute("""
-                    INSERT INTO users (user_id, username, full_name) VALUES (%s, %s, %s)
-                """, (user.id, user.username, user.full_name))
-
-        # Сохранение изменений
-        conn.commit()
+                    SELECT * FROM users WHERE user_id = %s
+                """, (user.id,))
+        result = cursor.fetchone()
+        # Если пользователь не существует, добавить его в базу данных
+        if not result:
+            cursor.execute("""
+                        INSERT INTO users (user_id, username, full_name) VALUES (%s, %s, %s)
+                    """, (user.id, user.username, user.full_name))
+            conn.commit()
         await bot.send_message(update.chat.id, f'Привет, {user.full_name}, как дела? Ваш ID: {user.id}')
 
-# @dp.message(F.animation)
-# async def echo_gif(message: types.Message):
-#     await message.reply_animation(message.animation.file_id)
+@dp.message(Command("start"))
+async def cmd_start(message: types.Message):
+    kb = [
+        [
+            types.KeyboardButton(text="Удалить пользователя"),
+        ],
+    ]
+    keyboard = types.ReplyKeyboardMarkup(
+        keyboard=kb,
+        resize_keyboard=True,
+        one_time_keyboard=True,
+        input_field_placeholder="выберите одно из действий"
+    )
+    await message.reply("Выберите действие", reply_markup=keyboard)
 
-# @dp.message(F.text)
-# async def photo_msg(message: Message):
-#     await message.answer("Это точно какое-то изображение!")
-# @dp.message(F.text == 'hello')
-# async def user_joined_chat(message: types.Message):
-#     print('Users changed')
 
-@dp.message(Command(commands='help'))
-async def process_help_command(message: Message):
-    await message.answer(text='/help')
+@dp.message(F.text.lower() == "удалить пользователя")
+async def with_puree(message: types.Message, state: FSMContext):
+    await state.set_state(Form.username)
+    await message.reply("Напишите username пользователя которого хотите удалить:")
+
+
+class Form(StatesGroup):
+    username = State()  # определение состояния
+@dp.message(Form.username)  # обработчик будет вызван только когда состояние установлено в Form.username
+async def process_username(message: types.Message, state: FSMContext):
+    username = message.text
+    # Проверка, существует ли пользователь в базе данных
+    cursor.execute("""
+                SELECT * FROM users WHERE username = %s
+            """, (username,))
+    result = cursor.fetchone()
+    # Если пользователь существует, удалить его из чата
+    if result:
+        user_id = result[1]  # предполагается, что user_id хранится в первом столбце результата
+        for chat_id_tuple in chat_ids:
+            chat_id = int(chat_id_tuple[0])
+            await bot.ban_chat_member(chat_id, user_id)
+        await message.reply(f"Пользователь {username} был удален")
+    else:
+        await message.reply(f"Пользователь {username} не найден")
+    await state.clear()  # завершение состояния
 # @dp.message(lambda message: message.text.startswith('/ban'))
 # async def start(message: types.Message):
 #     user_id = int(message.text.split(" ")[1])
@@ -72,6 +108,8 @@ async def process_help_command(message: Message):
 #         chat_id = int(chat_id_tuple[0])
 #         await bot.ban_chat_member(chat_id, user_id)
 
+class Form(StatesGroup):
+    username = State()
 
 @dp.message(Command("random"))
 async def cmd_random(message: types.Message):
@@ -84,37 +122,11 @@ async def cmd_random(message: types.Message):
         "Нажмите на кнопку, чтобы отправить цветы",
         reply_markup=builder.as_markup()
     )
-@dp.message(Command(commands='start'))
-async def start_command(message: types.Message):
-    # Получение информации о всех пользователях из базы данных
-    cursor.execute("SELECT username FROM users")
-    usernames = cursor.fetchall()
-
-    builder = InlineKeyboardBuilder()
-    builder.add(types.InlineKeyboardButton(
-        text=f"{usernames}",
-        callback_data="random_value")
-    )
-    await message.answer(
-        "Нажмите на кнопку, чтобы отправить цветы",
-        reply_markup=builder.as_markup()
-    )
 
 @dp.callback_query()
 async def send_random_value(callback: types.CallbackQuery):
     await callback.message.answer(str("цветы отправлены"))
 
-
-# @dp.message(content_types=['new_chat_members'])
-# async def new_member(message: types.Message):
-#     for new_user in message.new_chat_members:
-#         user_id = new_user.id
-#         username = new_user.username
-#         first_name = new_user.first_name
-#         last_name = new_user.last_name
-#
-#         cursor.execute(f"INSERT INTO users (user_id, username, first_name, last_name) VALUES ({user_id}, '{username}', '{first_name}', '{last_name}')")
-#         conn.commit()
 
 
 async def main():
