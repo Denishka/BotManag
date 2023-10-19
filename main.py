@@ -126,8 +126,8 @@ async def delete_user_from_chats(user, username, message):
         chat_id = int(chat_id_tuple[0])
         try:
             await bot.ban_chat_member(chat_id, user_id)
-        except exceptions.BadRequest:
-            continue  # Пропустить эту группу и перейти к следующей
+        except exceptions.TelegramBadRequest:
+            continue
     delete_user_from_database(user_id)
     await message.answer(f"Пользователь {username} был удален")
 
