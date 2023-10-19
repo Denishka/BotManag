@@ -8,7 +8,7 @@ from aiogram.filters import Command
 from aiogram.filters.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
-
+from aiogram import exceptions
 from config_reader import config
 from aiogram.types.chat import Chat
 from aiogram.enums.chat_type import ChatType
@@ -47,6 +47,7 @@ def get_chat_ids():
     except:
         print(f"Произошла ошибка. Проверьте подключение к базе данных")
 
+
 def delete_user_from_database(user_id):
     conn = get_connection_to_database()
     cursor = conn.cursor()
@@ -54,6 +55,8 @@ def delete_user_from_database(user_id):
                 DELETE FROM users WHERE user_id = %s
             """, (user_id,))
     conn.commit()
+
+
 def insert_user_to_database(user):
     conn = get_connection_to_database()
     cursor = conn.cursor()
@@ -107,11 +110,6 @@ async def with_puree(message: types.Message, state: FSMContext):
     await state.set_state(Form.username)
     await message.reply("Напишите username пользователя, которого хотите удалить:")
 
-
-class Form(StatesGroup):
-    username = State()
-
-
 def get_user_by_username_from_database(username):
     conn = get_connection_to_database()
     cursor = conn.cursor()
@@ -126,7 +124,10 @@ async def delete_user_from_chats(user, username, message):
     chat_ids = get_chat_ids()
     for chat_id_tuple in chat_ids:
         chat_id = int(chat_id_tuple[0])
-        await bot.ban_chat_member(chat_id, user_id)
+        try:
+            await bot.ban_chat_member(chat_id, user_id)
+        except exceptions.BadRequest:
+            continue  # Пропустить эту группу и перейти к следующей
     delete_user_from_database(user_id)
     await message.answer(f"Пользователь {username} был удален")
 
