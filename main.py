@@ -125,17 +125,6 @@ async def delete_user_from_chats(user, message):
     await message.reply(f"Пользователь {username} был удален")
 
 
-# @dp.message(Form.username)
-# async def process_username(message: types.Message, state: FSMContext):
-#     username = message.text
-#     user = get_user_by_username_from_database(username)
-#     if user:
-#         await delete_user_from_chats(user, message)
-#     else:
-#         await message.reply(f"Пользователь {username} не найден")
-#     await state.clear()
-
-
 class Form(StatesGroup):
     confirm = State()
     username = State()
@@ -167,7 +156,7 @@ async def process_username(message: types.Message, state: FSMContext):
 
 
 @dp.message(Form.confirm, F.text.casefold() == "да")
-async def process_like_write_bots(message: types.Message, state: FSMContext):
+async def process_like_write_bots(state: FSMContext):
     dict_inf = await state.get_data()
     username = dict_inf["name"]
     user = get_user_by_username_from_database(username)
