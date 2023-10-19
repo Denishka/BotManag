@@ -1,17 +1,16 @@
 import asyncio
 
-import aiogram.enums.chat_type
 import psycopg2
 from aiogram import Dispatcher, Bot
 from aiogram import F, Router, types
+from aiogram import exceptions
+from aiogram.enums.chat_type import ChatType
 from aiogram.filters import Command
 from aiogram.filters.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
-from aiogram import exceptions
+
 from config_reader import config
-from aiogram.types.chat import Chat
-from aiogram.enums.chat_type import ChatType
 
 bot = Bot(token=config.bot_token.get_secret_value())
 
