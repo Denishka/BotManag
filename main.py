@@ -168,9 +168,10 @@ async def process_username(message: types.Message, state: FSMContext):
 
 @dp.message(Form.confirm, F.text.casefold() == "да")
 async def process_like_write_bots(message: types.Message, state: FSMContext):
-    username = await state.get_data()
+    dict_inf = await state.get_data()
+    username = dict_inf["name"]
     user = get_user_by_username_from_database(username)
-    await delete_user_from_chats(user, message)
+    await delete_user_from_chats(user, username)
     await state.clear()
 
 
