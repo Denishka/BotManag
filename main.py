@@ -47,7 +47,13 @@ def get_chat_ids():
     except:
         print(f"Произошла ошибка. Проверьте подключение к базе данных")
 
-
+def delete_user_from_database(user_id):
+    conn = get_connection_to_database()
+    cursor = conn.cursor()
+    cursor.execute("""
+                DELETE FROM users WHERE user_id = %s
+            """, (user_id,))
+    conn.commit()
 def insert_user_to_database(user):
     conn = get_connection_to_database()
     cursor = conn.cursor()
@@ -121,6 +127,7 @@ async def delete_user_from_chats(user, username, message):
     for chat_id_tuple in chat_ids:
         chat_id = int(chat_id_tuple[0])
         await bot.ban_chat_member(chat_id, user_id)
+    delete_user_from_database(user_id)
     await message.answer(f"Пользователь {username} был удален")
 
 
