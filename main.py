@@ -115,13 +115,13 @@ def get_user_by_username_from_database(username):
     return cursor.fetchone()
 
 
-async def delete_user_from_chats(user, message):
+async def delete_user_from_chats(user, username, message):
     user_id = user[1]
     chat_ids = get_chat_ids()
     for chat_id_tuple in chat_ids:
         chat_id = int(chat_id_tuple[0])
         await bot.ban_chat_member(chat_id, user_id)
-    await message.answer(f"Пользователь {message} был удален")
+    await message.answer(f"Пользователь {username} был удален")
 
 
 class Form(StatesGroup):
@@ -159,7 +159,7 @@ async def process_like_write_bots(message: types.Message, state: FSMContext):
     dict_inf = await state.get_data()
     username = dict_inf["name"]
     user = get_user_by_username_from_database(username)
-    await delete_user_from_chats(user, username)
+    await delete_user_from_chats(user, username, message)
     await message.reply("Пользователь удален!")
     await cmd_start(message)
     await state.clear()
