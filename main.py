@@ -118,11 +118,10 @@ def get_user_by_username_from_database(username):
 async def delete_user_from_chats(user, message):
     user_id = user[1]
     chat_ids = get_chat_ids()
-    username = message.text
     for chat_id_tuple in chat_ids:
         chat_id = int(chat_id_tuple[0])
         await bot.ban_chat_member(chat_id, user_id)
-    await message.reply(f"Пользователь {username} был удален")
+    await message.answer(f"Пользователь {message} был удален")
 
 
 class Form(StatesGroup):
