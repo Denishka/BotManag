@@ -43,8 +43,7 @@ def get_chat_ids():
         cursor.execute('Select chat_id from chat_list')
         return cursor.fetchall()
     except:
-        print('Can`t establish connection to database')
-        # Обработка, в случае если база данных недоступна
+        print(f"Произошла ошибка. Проверьте подключение к базе данных")
 
 
 def insert_user_to_database(user):
@@ -77,7 +76,7 @@ async def new_chat_member(update: types.ChatMemberUpdated):
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
-    if message.chat.type != ChatType.PRIVATE:
+    if message.chat.type != 'private':
         return
     kb = [
         [
@@ -95,6 +94,8 @@ async def cmd_start(message: types.Message):
 
 @dp.message(F.text.lower() == "удалить пользователя")
 async def with_puree(message: types.Message, state: FSMContext):
+    if message.chat.type != ChatType.PRIVATE:
+        return
     await state.set_state(Form.username)
     await message.reply("Напишите username пользователя которого хотите удалить:")
 
