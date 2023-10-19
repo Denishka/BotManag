@@ -7,6 +7,8 @@ from aiogram import F, Router, types
 from aiogram.filters import Command
 from aiogram.filters.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+
 from config_reader import config
 from aiogram.types.chat import Chat
 from aiogram.enums.chat_type import ChatType
@@ -123,19 +125,59 @@ async def delete_user_from_chats(user, message):
     await message.reply(f"Пользователь {username} был удален")
 
 
+# @dp.message(Form.username)
+# async def process_username(message: types.Message, state: FSMContext):
+#     username = message.text
+#     user = get_user_by_username_from_database(username)
+#     if user:
+#         await delete_user_from_chats(user, message)
+#     else:
+#         await message.reply(f"Пользователь {username} не найден")
+#     await state.clear()
+
+
+class Form(StatesGroup):
+    confirm = State()
+    username = State()
+
+
 @dp.message(Form.username)
 async def process_username(message: types.Message, state: FSMContext):
     username = message.text
     user = get_user_by_username_from_database(username)
     if user:
-        await delete_user_from_chats(user, message)
+        await state.update_data(name=message.text)
+        await state.set_state(Form.confirm)
+        await message.answer(
+            "Вы действительно хотите удалить пользователя?",
+            reply_markup=ReplyKeyboardMarkup(
+                keyboard=[
+                    [
+                        KeyboardButton(text="Да"),
+                        KeyboardButton(text="Нет"),
+                    ]
+                ],
+                resize_keyboard=True,
+                one_time_keyboard=True,
+            ),
+        )
     else:
         await message.reply(f"Пользователь {username} не найден")
+        await state.clear()
+
+
+@dp.message(Form.confirm, F.text.casefold() == "да")
+async def process_like_write_bots(message: types.Message, state: FSMContext):
+    username = await state.get_data()
+    user = get_user_by_username_from_database(username)
+    await delete_user_from_chats(user, message)
     await state.clear()
 
 
-class Form(StatesGroup):
-    username = State()
+@dp.message(Form.confirm, F.text.casefold() == "нет")
+async def process_dont_like_write_bots(message: types.Message, state: FSMContext):
+    await message.reply("Вы отказались удалять пользователя")
+    await state.clear()
 
 
 async def main():
