@@ -99,7 +99,7 @@ async def with_puree(message: types.Message, state: FSMContext):
     if message.chat.type != ChatType.PRIVATE:
         return
     await state.set_state(Form.username)
-    await message.reply("Напишите username пользователя которого хотите удалить:")
+    await message.reply("Напишите username пользователя, которого хотите удалить:")
 
 
 class Form(StatesGroup):
@@ -156,17 +156,20 @@ async def process_username(message: types.Message, state: FSMContext):
 
 
 @dp.message(Form.confirm, F.text.casefold() == "да")
-async def process_like_write_bots(state: FSMContext):
+async def process_like_write_bots(message: types.Message, state: FSMContext):
     dict_inf = await state.get_data()
     username = dict_inf["name"]
     user = get_user_by_username_from_database(username)
     await delete_user_from_chats(user, username)
+    await message.reply("Пользователь удален!")
+    await cmd_start(message)
     await state.clear()
 
 
 @dp.message(Form.confirm, F.text.casefold() == "нет")
 async def process_dont_like_write_bots(message: types.Message, state: FSMContext):
     await message.reply("Вы отказались удалять пользователя")
+    await cmd_start(message)
     await state.clear()
 
 
