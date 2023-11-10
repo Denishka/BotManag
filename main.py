@@ -87,11 +87,11 @@ async def new_chat_member(update: types.ChatMemberUpdated):
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
+    if message.chat.type != 'private':
+        return
     if message.from_user.id not in AUTHORIZED_USERS:
         await bot.send_message(message.from_user.id, "Извините, у вас нет доступа к этой функции.")
     else:
-        if message.chat.type != 'private':
-            return
         kb = [
             [
                 types.KeyboardButton(text="Удалить пользователя"),
@@ -108,11 +108,11 @@ async def cmd_start(message: types.Message):
 
 @dp.message(F.text.lower() == "удалить пользователя")
 async def with_puree(message: types.Message, state: FSMContext):
+    if message.chat.type != ChatType.PRIVATE:
+        return
     if message.from_user.id not in AUTHORIZED_USERS:
         await bot.send_message(message.from_user.id, "Извините, у вас нет доступа к этой функции.")
     else:
-        if message.chat.type != ChatType.PRIVATE:
-            return
         await state.set_state(Form.username)
         await message.reply("Напишите username пользователя, которого хотите удалить:")
 
