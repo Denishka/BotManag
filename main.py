@@ -17,6 +17,7 @@ bot = Bot(token=config.bot_token.get_secret_value())
 router = Router()
 dp = Dispatcher()
 
+AUTHORIZED_USERS = [319186657] # id HR
 
 def get_connection_to_database():
     return psycopg2.connect(dbname='postgres', user='postgres', password='postgres', host='127.0.0.1')
@@ -86,28 +87,34 @@ async def new_chat_member(update: types.ChatMemberUpdated):
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
-    if message.chat.type != 'private':
-        return
-    kb = [
-        [
-            types.KeyboardButton(text="Удалить пользователя"),
-        ],
-    ]
-    keyboard = types.ReplyKeyboardMarkup(
-        keyboard=kb,
-        resize_keyboard=True,
-        one_time_keyboard=True,
-        input_field_placeholder="выберите одно из действий"
-    )
-    await message.reply("Выберите действие", reply_markup=keyboard)
+    if message.from_user.id not in AUTHORIZED_USERS:
+        await bot.send_message(message.from_user.id, "Извините, у вас нет доступа к этой функции.")
+    else:
+        if message.chat.type != 'private':
+            return
+        kb = [
+            [
+                types.KeyboardButton(text="Удалить пользователя"),
+            ],
+        ]
+        keyboard = types.ReplyKeyboardMarkup(
+            keyboard=kb,
+            resize_keyboard=True,
+            one_time_keyboard=True,
+            input_field_placeholder="выберите одно из действий"
+        )
+        await message.reply("Выберите действие", reply_markup=keyboard)
 
 
 @dp.message(F.text.lower() == "удалить пользователя")
 async def with_puree(message: types.Message, state: FSMContext):
-    if message.chat.type != ChatType.PRIVATE:
-        return
-    await state.set_state(Form.username)
-    await message.reply("Напишите username пользователя, которого хотите удалить:")
+    if message.from_user.id not in AUTHORIZED_USERS:
+        await bot.send_message(message.from_user.id, "Извините, у вас нет доступа к этой функции.")
+    else:
+        if message.chat.type != ChatType.PRIVATE:
+            return
+        await state.set_state(Form.username)
+        await message.reply("Напишите username пользователя, которого хотите удалить:")
 
 def get_user_by_username_from_database(username):
     conn = get_connection_to_database()
@@ -138,27 +145,30 @@ class Form(StatesGroup):
 
 @dp.message(Form.username)
 async def process_username(message: types.Message, state: FSMContext):
-    username = message.text
-    user = get_user_by_username_from_database(username)
-    if user:
-        await state.update_data(name=message.text)
-        await state.set_state(Form.confirm)
-        await message.answer(
-            "Вы действительно хотите удалить пользователя?",
-            reply_markup=ReplyKeyboardMarkup(
-                keyboard=[
-                    [
-                        KeyboardButton(text="Да"),
-                        KeyboardButton(text="Нет"),
-                    ]
-                ],
-                resize_keyboard=True,
-                one_time_keyboard=True,
-            ),
-        )
+    if message.from_user.id not in AUTHORIZED_USERS:
+        await bot.send_message(message.from_user.id, "Извините, у вас нет доступа к этой функции.")
     else:
-        await message.reply(f"Пользователь {username} не найден")
-        await state.clear()
+        username = message.text
+        user = get_user_by_username_from_database(username)
+        if user:
+            await state.update_data(name=message.text)
+            await state.set_state(Form.confirm)
+            await message.answer(
+                "Вы действительно хотите удалить пользователя?",
+                reply_markup=ReplyKeyboardMarkup(
+                    keyboard=[
+                        [
+                            KeyboardButton(text="Да"),
+                            KeyboardButton(text="Нет"),
+                        ]
+                    ],
+                    resize_keyboard=True,
+                    one_time_keyboard=True,
+                ),
+            )
+        else:
+            await message.reply(f"Пользователь {username} не найден")
+            await state.clear()
 
 
 @dp.message(Form.confirm, F.text.casefold() == "да")
