@@ -34,8 +34,13 @@ def init_database():
                 full_name TEXT
             )
         """)
+    cursor.execute("""
+            CREATE TABLE IF NOT EXISTS invitation_links (
+                id SERIAL PRIMARY KEY,
+                link TEXT
+            )
+        """)
     conn.commit()
-
 
 def get_chat_ids():
     try:
@@ -194,4 +199,5 @@ async def main():
 
 
 if __name__ == '__main__':
+    init_database()
     asyncio.run(main())
