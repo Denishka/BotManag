@@ -30,8 +30,8 @@ def init_database():
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
                 user_id INTEGER NOT NULL,
-                username TEXT,
-                full_name TEXT
+                username VARCHAR,
+                full_name VARCHAR
             )
         """)
     cursor.execute("""
@@ -60,6 +60,14 @@ def delete_user_from_database(user_id):
                 DELETE FROM users WHERE user_id = %s
             """, (user_id,))
     conn.commit()
+
+@dp.message()
+async def forward_message(message: types.Message):
+    if message.forward_from:
+        user_id = message.forward_from.id
+        user_first_name = message.forward_from.first_name
+        user_last_name = message.forward_from.last_name
+        await message.answer(f"Сообщение было переслано от пользователя с ID {user_id}, имя {user_first_name} {user_last_name}")
 
 
 def insert_user_to_database(user):
