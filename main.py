@@ -1,14 +1,22 @@
 import asyncio
+from contextlib import suppress
 
 import psycopg2
 from aiogram import Dispatcher, Bot
 from aiogram import F, Router, types
 from aiogram import exceptions
 from aiogram.enums.chat_type import ChatType
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command
 from aiogram.filters.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import ReplyKeyboardRemove, \
+    ReplyKeyboardMarkup, KeyboardButton, \
+    InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+from typing import Optional
+from aiogram.filters.callback_data import CallbackData
 
 from config_reader import config
 
@@ -17,7 +25,10 @@ bot = Bot(token=config.bot_token.get_secret_value())
 router = Router()
 dp = Dispatcher()
 
-AUTHORIZED_USERS = [319186657] # id HR
+AUTHORIZED_USERS = [319186657]  # id HR
+
+forwarded_users = {}
+
 
 def get_connection_to_database():
     return psycopg2.connect(dbname='postgres', user='postgres', password='postgres', host='127.0.0.1')
@@ -29,9 +40,10 @@ def init_database():
     cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
-                user_id INTEGER NOT NULL,
+                user_id BIGINT NOT NULL,
                 username VARCHAR,
-                full_name VARCHAR
+                region_id INTEGER,
+                FOREIGN KEY (region_id) REFERENCES regions (id)
             )
         """)
     cursor.execute("""
@@ -40,7 +52,15 @@ def init_database():
                 link TEXT
             )
         """)
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS regions(
+            id SERIAL PRIMARY KEY,
+            name VARCHAR NOT NULL
+        )
+    ''')
     conn.commit()
+
 
 def get_chat_ids():
     try:
@@ -52,6 +72,14 @@ def get_chat_ids():
     except:
         print(f"Произошла ошибка. Проверьте подключение к базе данных")
 
+def get_region_name_by_id(region_id):
+        conn = get_connection_to_database()
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM regions WHERE id = %s", (region_id,))
+        result = cursor.fetchone()
+        conn.close()
+        return result[0] if result else None
+
 
 def delete_user_from_database(user_id):
     conn = get_connection_to_database()
@@ -61,14 +89,133 @@ def delete_user_from_database(user_id):
             """, (user_id,))
     conn.commit()
 
+
+def get_all_regions():
+    conn = get_connection_to_database()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM regions")
+    regions = cursor.fetchall()
+
+    conn.close()
+
+    return regions
+
+
+class RegionCallbackFactory(CallbackData, prefix="region"):
+    action: str
+    region: Optional[int] = None
+
+
+async def add_user_to_region(user_id, username, region_id):
+    conn = get_connection_to_database()
+    cursor = conn.cursor()
+
+    # Обновляем пользователя в таблице users с указанным идентификатором региона
+    cursor.execute("INSERT INTO users (user_id, username, region_id) VALUES (%s, %s, %s)",
+                   (user_id, username, region_id))
+    conn.commit()
+    conn.close()
+
+
+# @dp.callback_query(RegionCallbackFactory.filter())
+# async def callbacks_region_select(
+#         callback: types.CallbackQuery,
+#         callback_data: RegionCallbackFactory
+# ):
+#     # Если регион был выбран
+#     if callback_data.action == "select":
+#         # Используем user_id и username из временного хранилища
+#         user_info = forwarded_users.get(callback.message.chat.id)
+#         if user_info is not None:
+#             await add_user_to_region(user_info['user_id'], user_info['username'], callback_data.region)
+#             await callback.message.edit_text(f"Пользователь с именем {user_info['username']} и ID {user_info['user_id']} был добавлен в регион с ID {callback_data.region}.")
+#     # Если выбор региона завершен
+#     else:
+#         await callback.message.edit_text("Выбор региона завершен.")
+#     await callback.answer()
+
+async def update_region_text_fab(message: types.Message, new_region: str, regions):
+    with suppress(TelegramBadRequest):
+        await message.edit_text(
+            f"Выбранный регион: {new_region}",
+            reply_markup=get_keyboard_fab(regions)
+        )
+
+@dp.callback_query(RegionCallbackFactory.filter(F.action =="select"))
+async def callbacks_region_select(
+        callback: types.CallbackQuery,
+        callback_data: RegionCallbackFactory
+):
+    user_info = forwarded_users.get(callback.from_user.id, {})
+    # Текущий выбранный регион
+    user_info['region'] = callback_data.region
+    forwarded_users[callback.from_user.id] = user_info
+    region_name = get_region_name_by_id(callback_data.region)
+    regions = get_all_regions()
+    await update_region_text_fab(callback.message, callback_data.region, regions)
+    await callback.answer()
+
+@dp.callback_query(RegionCallbackFactory.filter(F.action =="finish"))
+async def callbacks_region_finish(
+        callback: types.CallbackQuery,
+        callback_data: RegionCallbackFactory
+):
+    # Используем user_id, username и выбранный регион из временного хранилища
+    user_info = forwarded_users.get(callback.message.chat.id)
+    if user_info is not None and 'region' in user_info:
+        await add_user_to_region(user_info['user_id'], user_info['username'], user_info['region'])
+        # Обновляем текст сообщения, чтобы отобразить выбранный регион
+        await callback.message.edit_text(f"Выбор региона завершен. Выбранный регион: {user_info['region']}")
+    else:
+        await callback.message.edit_text("Выбор региона завершен.")
+    await callback.answer()
+
+
+def get_keyboard_fab(regions):
+    builder = InlineKeyboardBuilder()
+    for region in regions:
+        builder.button(
+            text=region[1], callback_data=RegionCallbackFactory(action="select", region=region[0])
+        )
+    builder.button(
+        text="Подтвердить", callback_data=RegionCallbackFactory(action="finish")
+    )
+    # Выравниваем кнопки по 3 в ряд
+    builder.adjust(2)
+    return builder.as_markup()
 @dp.message()
 async def forward_message(message: types.Message):
     if message.forward_from:
         user_id = message.forward_from.id
-        user_first_name = message.forward_from.first_name
-        user_last_name = message.forward_from.last_name
-        await message.answer(f"Сообщение было переслано от пользователя с ID {user_id}, имя {user_first_name} {user_last_name}")
+        username = message.forward_from.username
+        forwarded_users[message.chat.id] = {'user_id': user_id, 'username': username}
+        # Получаем список регионов из базы данных
+        regions = get_all_regions()
+        keyboard = get_keyboard_fab(regions)
 
+        await message.answer(
+            f"В какой регион вы хотите добавить пользователя с именем {username} и ID {user_id} ?",
+            reply_markup=keyboard
+        )
+# @dp.message(lambda message: message.text in ['Самара', 'Тольятти'])
+# async def process_callback_button1(message: types.Message):
+#     user_id = message.from_user.id
+#     group = message.text
+#
+#     # Вставка данных в базу
+#     cursor.execute(f"INSERT INTO users (id, group) VALUES ({user_id}, '{group}')")
+#     conn.commit()
+#
+#     await bot.answer_callback_query(message.id)
+#     await bot.send_message(message.from_user.id, f'Вы выбрали {group}')
+
+
+# @dp.message()
+# async def notify_owner(message: types.Message):
+#     owner_id = str(AUTHORIZED_USERS)
+#     user_id = message.from_user.id
+#     await bot.send_message(chat_id=owner_id, text=f"Пользователь с ID {user_id} написал боту.")
 
 def insert_user_to_database(user):
     conn = get_connection_to_database()
@@ -128,6 +275,7 @@ async def with_puree(message: types.Message, state: FSMContext):
     else:
         await state.set_state(Form.username)
         await message.reply("Напишите username пользователя, которого хотите удалить:")
+
 
 def get_user_by_username_from_database(username):
     conn = get_connection_to_database()
