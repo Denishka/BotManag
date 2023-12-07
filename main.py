@@ -72,13 +72,14 @@ def get_chat_ids():
     except:
         print(f"Произошла ошибка. Проверьте подключение к базе данных")
 
+
 def get_region_name_by_id(region_id):
-        conn = get_connection_to_database()
-        cursor = conn.cursor()
-        cursor.execute("SELECT name FROM regions WHERE id = %s", (region_id,))
-        result = cursor.fetchone()
-        conn.close()
-        return result[0] if result else None
+    conn = get_connection_to_database()
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM regions WHERE id = %s", (region_id,))
+    result = cursor.fetchone()
+    conn.close()
+    return result[0] if result else None
 
 
 def delete_user_from_database(user_id):
@@ -118,23 +119,6 @@ async def add_user_to_region(user_id, username, region_id):
     conn.close()
 
 
-# @dp.callback_query(RegionCallbackFactory.filter())
-# async def callbacks_region_select(
-#         callback: types.CallbackQuery,
-#         callback_data: RegionCallbackFactory
-# ):
-#     # Если регион был выбран
-#     if callback_data.action == "select":
-#         # Используем user_id и username из временного хранилища
-#         user_info = forwarded_users.get(callback.message.chat.id)
-#         if user_info is not None:
-#             await add_user_to_region(user_info['user_id'], user_info['username'], callback_data.region)
-#             await callback.message.edit_text(f"Пользователь с именем {user_info['username']} и ID {user_info['user_id']} был добавлен в регион с ID {callback_data.region}.")
-#     # Если выбор региона завершен
-#     else:
-#         await callback.message.edit_text("Выбор региона завершен.")
-#     await callback.answer()
-
 async def update_region_text_fab(message: types.Message, new_region: str, regions):
     with suppress(TelegramBadRequest):
         await message.edit_text(
@@ -142,7 +126,8 @@ async def update_region_text_fab(message: types.Message, new_region: str, region
             reply_markup=get_keyboard_fab(regions)
         )
 
-@dp.callback_query(RegionCallbackFactory.filter(F.action =="select"))
+
+@dp.callback_query(RegionCallbackFactory.filter(F.action == "select"))
 async def callbacks_region_select(
         callback: types.CallbackQuery,
         callback_data: RegionCallbackFactory
@@ -153,10 +138,11 @@ async def callbacks_region_select(
     forwarded_users[callback.from_user.id] = user_info
     region_name = get_region_name_by_id(callback_data.region)
     regions = get_all_regions()
-    await update_region_text_fab(callback.message, callback_data.region, regions)
+    await update_region_text_fab(callback.message, region_name, regions)
     await callback.answer()
 
-@dp.callback_query(RegionCallbackFactory.filter(F.action =="finish"))
+
+@dp.callback_query(RegionCallbackFactory.filter(F.action == "finish"))
 async def callbacks_region_finish(
         callback: types.CallbackQuery,
         callback_data: RegionCallbackFactory
@@ -166,7 +152,8 @@ async def callbacks_region_finish(
     if user_info is not None and 'region' in user_info:
         await add_user_to_region(user_info['user_id'], user_info['username'], user_info['region'])
         # Обновляем текст сообщения, чтобы отобразить выбранный регион
-        await callback.message.edit_text(f"Выбор региона завершен. Выбранный регион: {user_info['region']}")
+        await callback.message.edit_text(
+            f"Выбор региона завершен. Выбранный регион: {get_region_name_by_id(user_info['region'])}")
     else:
         await callback.message.edit_text("Выбор региона завершен.")
     await callback.answer()
@@ -184,6 +171,8 @@ def get_keyboard_fab(regions):
     # Выравниваем кнопки по 3 в ряд
     builder.adjust(2)
     return builder.as_markup()
+
+
 @dp.message()
 async def forward_message(message: types.Message):
     if message.forward_from:
@@ -198,24 +187,7 @@ async def forward_message(message: types.Message):
             f"В какой регион вы хотите добавить пользователя с именем {username} и ID {user_id} ?",
             reply_markup=keyboard
         )
-# @dp.message(lambda message: message.text in ['Самара', 'Тольятти'])
-# async def process_callback_button1(message: types.Message):
-#     user_id = message.from_user.id
-#     group = message.text
-#
-#     # Вставка данных в базу
-#     cursor.execute(f"INSERT INTO users (id, group) VALUES ({user_id}, '{group}')")
-#     conn.commit()
-#
-#     await bot.answer_callback_query(message.id)
-#     await bot.send_message(message.from_user.id, f'Вы выбрали {group}')
 
-
-# @dp.message()
-# async def notify_owner(message: types.Message):
-#     owner_id = str(AUTHORIZED_USERS)
-#     user_id = message.from_user.id
-#     await bot.send_message(chat_id=owner_id, text=f"Пользователь с ID {user_id} написал боту.")
 
 def insert_user_to_database(user):
     conn = get_connection_to_database()
