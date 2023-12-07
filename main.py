@@ -111,8 +111,6 @@ class RegionCallbackFactory(CallbackData, prefix="region"):
 async def add_user_to_region(user_id, username, region_id):
     conn = get_connection_to_database()
     cursor = conn.cursor()
-
-    # Обновляем пользователя в таблице users с указанным идентификатором региона
     cursor.execute("INSERT INTO users (user_id, username, region_id) VALUES (%s, %s, %s)",
                    (user_id, username, region_id))
     conn.commit()
@@ -122,7 +120,7 @@ async def add_user_to_region(user_id, username, region_id):
 async def update_region_text_fab(message: types.Message, new_region: str, regions):
     with suppress(TelegramBadRequest):
         await message.edit_text(
-            f"Выбранный регион: {new_region}",
+            f"В какой регион вы хотите добавить пользователя с именем {forwarded_users[319186657]['username']} и ID {forwarded_users[319186657]['user_id']} ? Выбранный регион:  {new_region}",
             reply_markup=get_keyboard_fab(regions)
         )
 
@@ -151,7 +149,6 @@ async def callbacks_region_finish(
     user_info = forwarded_users.get(callback.message.chat.id)
     if user_info is not None and 'region' in user_info:
         await add_user_to_region(user_info['user_id'], user_info['username'], user_info['region'])
-        # Обновляем текст сообщения, чтобы отобразить выбранный регион
         await callback.message.edit_text(
             f"Выбор региона завершен. Выбранный регион: {get_region_name_by_id(user_info['region'])}")
     else:
@@ -184,7 +181,7 @@ async def forward_message(message: types.Message):
         keyboard = get_keyboard_fab(regions)
 
         await message.answer(
-            f"В какой регион вы хотите добавить пользователя с именем {username} и ID {user_id} ?",
+            f"В какой регион вы хотите добавить пользователя с именем {username} и ID {user_id} ? Выбранный регион: ",
             reply_markup=keyboard
         )
 
