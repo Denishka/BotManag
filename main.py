@@ -19,6 +19,8 @@ from typing import Optional
 from aiogram.filters.callback_data import CallbackData
 
 from config_reader import config
+from database_manager import init_database, get_connection_to_database, get_all_regions, get_chat_ids, \
+    delete_user_from_database, add_user_to_region, insert_user_to_database, get_user_by_username_from_database, get_user_by_id_from_database
 
 bot = Bot(token=config.bot_token.get_secret_value())
 
@@ -30,49 +32,6 @@ AUTHORIZED_USERS = [319186657]  # id HR
 forwarded_users = {}
 
 
-def get_connection_to_database():
-    return psycopg2.connect(dbname='postgres', user='postgres', password='postgres', host='127.0.0.1')
-
-
-def init_database():
-    conn = get_connection_to_database()
-    cursor = conn.cursor()
-    cursor.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id SERIAL PRIMARY KEY,
-                user_id BIGINT NOT NULL,
-                username VARCHAR,
-                region_id INTEGER,
-                FOREIGN KEY (region_id) REFERENCES regions (id)
-            )
-        """)
-    cursor.execute("""
-            CREATE TABLE IF NOT EXISTS invitation_links (
-                id SERIAL PRIMARY KEY,
-                link TEXT
-            )
-        """)
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS regions(
-            id SERIAL PRIMARY KEY,
-            name VARCHAR NOT NULL
-        )
-    ''')
-    conn.commit()
-
-
-def get_chat_ids():
-    try:
-        # localhost; 5432; postgres
-        conn = get_connection_to_database()
-        cursor = conn.cursor()
-        cursor.execute('Select chat_id from chat_list')
-        return cursor.fetchall()
-    except:
-        print(f"Произошла ошибка. Проверьте подключение к базе данных")
-
-
 def get_region_name_by_id(region_id):
     conn = get_connection_to_database()
     cursor = conn.cursor()
@@ -82,39 +41,9 @@ def get_region_name_by_id(region_id):
     return result[0] if result else None
 
 
-def delete_user_from_database(user_id):
-    conn = get_connection_to_database()
-    cursor = conn.cursor()
-    cursor.execute("""
-                DELETE FROM users WHERE user_id = %s
-            """, (user_id,))
-    conn.commit()
-
-
-def get_all_regions():
-    conn = get_connection_to_database()
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT * FROM regions")
-    regions = cursor.fetchall()
-
-    conn.close()
-
-    return regions
-
-
 class RegionCallbackFactory(CallbackData, prefix="region"):
     action: str
     region: Optional[int] = None
-
-
-async def add_user_to_region(user_id, username, region_id):
-    conn = get_connection_to_database()
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO users (user_id, username, region_id) VALUES (%s, %s, %s)",
-                   (user_id, username, region_id))
-    conn.commit()
-    conn.close()
 
 
 async def update_region_text_fab(message: types.Message, new_region: str, regions):
@@ -186,24 +115,6 @@ async def forward_message(message: types.Message):
         )
 
 
-def insert_user_to_database(user):
-    conn = get_connection_to_database()
-    cursor = conn.cursor()
-    cursor.execute("""
-                INSERT INTO users (user_id, username, full_name) VALUES (%s, %s, %s)
-            """, (user.id, user.username, user.full_name))
-    conn.commit()
-
-
-def get_user_by_id_from_database(user):
-    conn = get_connection_to_database()
-    cursor = conn.cursor()
-    cursor.execute("""
-                SELECT * FROM users WHERE user_id = %s
-            """, (user.id,))
-    return cursor.fetchone()
-
-
 @dp.chat_member()
 async def new_chat_member(update: types.ChatMemberUpdated):
     if update.new_chat_member.status == 'member':
@@ -244,15 +155,6 @@ async def with_puree(message: types.Message, state: FSMContext):
     else:
         await state.set_state(Form.username)
         await message.reply("Напишите username пользователя, которого хотите удалить:")
-
-
-def get_user_by_username_from_database(username):
-    conn = get_connection_to_database()
-    cursor = conn.cursor()
-    cursor.execute("""
-                    SELECT * FROM users WHERE username = %s
-                """, (username,))
-    return cursor.fetchone()
 
 
 async def delete_user_from_chats(user, username, message):
