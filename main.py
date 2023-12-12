@@ -15,7 +15,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from config_reader import config
 from database_manager import init_database, get_connection_to_database, get_all_regions, get_chat_ids, \
-    delete_user_from_database, add_user_to_region, insert_user_to_database, get_user_by_username_from_database, \
+    delete_user_from_database, add_user_to_regions, insert_user_to_database, get_user_by_username_from_database, \
     get_user_by_id_from_database
 
 bot = Bot(token=config.bot_token.get_secret_value())
@@ -77,8 +77,7 @@ async def callbacks_region_finish(
     # Используем user_id, username и выбранные регионы из временного хранилища
     user_info = forwarded_users.get(callback.message.chat.id)
     if user_info is not None and 'regions' in user_info:
-        for region in user_info['regions']:
-            await add_user_to_region(user_info['user_id'], user_info['username'], region)
+        await add_user_to_regions(user_info['user_id'], user_info['username'], user_info['regions'])
         region_names = [get_region_name_by_id(region) for region in user_info['regions']]
         await callback.message.edit_text(
             f"Выбор регионов завершен. Выбранные регионы: {', '.join(region_names)}")
