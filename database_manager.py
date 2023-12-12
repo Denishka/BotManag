@@ -9,6 +9,14 @@ def init_database():
     conn = get_connection_to_database()
     cursor = conn.cursor()
     cursor.execute("""
+        CREATE TABLE IF NOT EXISTS invitation_links (
+            id SERIAL PRIMARY KEY,
+            link TEXT,
+            region_id INTEGER REFERENCES regions (id)
+        )
+    """)
+
+    cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
                 user_id BIGINT NOT NULL,
@@ -112,6 +120,7 @@ def get_user_by_id_from_database(user):
     params = (user.id,)
     return execute_query(query, params)[0]
 
+
 # def get_user_regions(user_id):
 #     conn = get_connection_to_database()
 #     cursor = conn.cursor()
@@ -125,3 +134,15 @@ def get_user_by_id_from_database(user):
 #     """, (user_id,))
 #
 #     return [row[0] for row in cursor.fetchall()]
+
+def get_invite_links_for_region(region_id):
+    conn = get_connection_to_database()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT link
+        FROM invitation_links
+        WHERE region_id = %s
+    """, (region_id,))
+
+    return [row[0] for row in cursor.fetchall()]
