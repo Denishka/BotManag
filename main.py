@@ -171,22 +171,7 @@ async def with_puree(message: types.Message, state: FSMContext):
         await state.set_state(Form.username)
         await message.reply("Напишите username пользователя, которого хотите удалить:")
 
-@dp.message()
-async def forward_message(message: types.Message):
-    if message.forward_from:
-        user_id = message.forward_from.id
-        username = message.forward_from.username
-        forwarded_users[message.chat.id] = {'user_id': user_id, 'username': username}
-        # Получаем список регионов из базы данных
-        regions = get_all_regions()
-        keyboard = get_keyboard_fab(regions)
 
-        await message.answer(
-            f"В какие регионы вы хотите добавить пользователя с именем {username} и ID {user_id} ? Выбранные регионы: ",
-            reply_markup=keyboard
-        )
-    else:
-        return
 
 
 @dp.chat_member()
@@ -264,6 +249,22 @@ async def process_dont_like_write_bots(message: types.Message, state: FSMContext
     await cmd_start(message)
     await state.clear()
 
+@dp.message()
+async def forward_message(message: types.Message):
+    if message.forward_from:
+        user_id = message.forward_from.id
+        username = message.forward_from.username
+        forwarded_users[message.chat.id] = {'user_id': user_id, 'username': username}
+        # Получаем список регионов из базы данных
+        regions = get_all_regions()
+        keyboard = get_keyboard_fab(regions)
+
+        await message.answer(
+            f"В какие регионы вы хотите добавить пользователя с именем {username} и ID {user_id} ? Выбранные регионы: ",
+            reply_markup=keyboard
+        )
+    else:
+        return
 
 async def main():
     await dp.start_polling(bot)

@@ -60,9 +60,9 @@ def execute_and_commit_query(query, params):
             conn.commit()
 
 
-def get_chat_ids(self):
+def get_chat_ids():
     query = 'SELECT chat_id FROM chat_list'
-    return self.execute_query(query)
+    return execute_query(query)
 
 
 def get_all_regions():
@@ -71,7 +71,16 @@ def get_all_regions():
 
 
 def delete_user_from_database(user_id):
+    # Удаление связей пользователя
+    delete_user_relations(user_id)
+
+    # Удаление пользователя
     query = "DELETE FROM users WHERE user_id = %s"
+    params = (user_id,)
+    execute_and_commit_query(query, params)
+
+def delete_user_relations(user_id):
+    query = "DELETE FROM user_regions WHERE user_id = %s"
     params = (user_id,)
     execute_and_commit_query(query, params)
 
