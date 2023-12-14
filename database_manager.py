@@ -19,14 +19,8 @@ def init_database():
     cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
-                user_id BIGINT NOT NULL,
+                user_id BIGINT NOT NULL UNIQUE,
                 username VARCHAR
-            )
-        """)
-    cursor.execute("""
-            CREATE TABLE IF NOT EXISTS invitation_links (
-                id SERIAL PRIMARY KEY,
-                link TEXT
             )
         """)
 
@@ -38,12 +32,13 @@ def init_database():
     ''')
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS user_regions(
-            user_id BIGINT REFERENCES users (id),
+            user_id BIGINT REFERENCES users (user_id),
             region_id INTEGER REFERENCES regions (id),
             unique(user_id, region_id)
         )
     ''')
     conn.commit()
+
 
 
 def execute_query(query, params=None):
@@ -89,14 +84,13 @@ async def add_user_to_regions(user_id, username, region_ids):
         VALUES (%s, %s)
         RETURNING id
     """, (user_id, username))
-    user_db_id = cursor.fetchone()[0]
 
     # Добавляем связи пользователя с регионами
     for region_id in region_ids:
         cursor.execute("""
             INSERT INTO user_regions (user_id, region_id)
             VALUES (%s, %s)
-        """, (user_db_id, region_id))
+        """, (user_id, region_id))
 
     conn.commit()
 

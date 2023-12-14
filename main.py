@@ -28,6 +28,38 @@ AUTHORIZED_USERS = [319186657]  # id HR
 forwarded_users = {}
 
 
+def get_invite_links_for_user(user_id):
+    conn = get_connection_to_database()
+    cursor = conn.cursor()
+
+    # Получаем регионы, связанные с пользователем
+    cursor.execute("""
+        SELECT region_id
+        FROM user_regions
+        WHERE user_id = %s
+    """, (user_id,))
+    user_regions = [row[0] for row in cursor.fetchall()]
+
+    # Получаем ссылки приглашения для каждого региона
+    invite_links = []
+    for region_id in user_regions:
+        cursor.execute("""
+            SELECT link
+            FROM invitation_links
+            WHERE region_id = %s
+        """, (region_id,))
+        invite_links.extend([row[0] for row in cursor.fetchall()])
+
+    return invite_links
+
+@dp.callback_query(lambda c: c.data == 'get_links')
+async def process_callback(callback_query: types.CallbackQuery):
+    user_id = callback_query.from_user.id
+    links = get_invite_links_for_user(user_id)
+    text = "\n".join(links)
+    await bot.send_message(callback_query.from_user.id, text)
+
+
 def get_region_name_by_id(region_id):
     conn = get_connection_to_database()
     cursor = conn.cursor()
@@ -68,7 +100,6 @@ async def callbacks_region_select(
     await callback.answer()
 
 
-
 @dp.callback_query(RegionCallbackFactory.filter(F.action == "finish"))
 async def callbacks_region_finish(
         callback: types.CallbackQuery,
@@ -99,6 +130,46 @@ def get_keyboard_fab(regions):
     builder.adjust(2)
     return builder.as_markup()
 
+@dp.message(Command("start"))
+async def cmd_start(message: types.Message):
+    # if message.chat.type != 'private':
+    #     return
+    # if message.from_user.id not in AUTHORIZED_USERS:
+    #     await bot.send_message(message.from_user.id, "Извините, у вас нет доступа к этой функции.")
+    # else:
+    kb = [
+        [
+            types.KeyboardButton(text="Удалить пользователя"),
+            types.KeyboardButton(text="Получить ссылки"),
+        ],
+    ]
+    keyboard = types.ReplyKeyboardMarkup(
+        keyboard=kb,
+        resize_keyboard=True,
+        one_time_keyboard=True,
+        input_field_placeholder="выберите одно из действий"
+    )
+    await message.reply("Выберите действие", reply_markup=keyboard)
+
+
+@dp.message(F.text.lower() == "получить ссылки")
+async def with_puree(message: types.Message, state: FSMContext):
+        result = get_invite_links_for_user(message.from_user.id)
+        if result:
+            result_text = "\n".join(result)
+            await bot.send_message(message.from_user.id, result_text)
+        else:
+            await bot.send_message(message.from_user.id, "Извините, ссылок для вас не найдено.")
+
+@dp.message(F.text.lower() == "удалить пользователя")
+async def with_puree(message: types.Message, state: FSMContext):
+    if message.chat.type != ChatType.PRIVATE:
+        return
+    if message.from_user.id not in AUTHORIZED_USERS:
+        await bot.send_message(message.from_user.id, "Извините, у вас нет доступа к этой функции.")
+    else:
+        await state.set_state(Form.username)
+        await message.reply("Напишите username пользователя, которого хотите удалить:")
 
 @dp.message()
 async def forward_message(message: types.Message):
@@ -114,6 +185,8 @@ async def forward_message(message: types.Message):
             f"В какие регионы вы хотите добавить пользователя с именем {username} и ID {user_id} ? Выбранные регионы: ",
             reply_markup=keyboard
         )
+    else:
+        return
 
 
 @dp.chat_member()
@@ -126,36 +199,6 @@ async def new_chat_member(update: types.ChatMemberUpdated):
         await bot.send_message(update.chat.id, f'Привет, {user.full_name}, как дела? Ваш ID: {user.id}')
 
 
-@dp.message(Command("start"))
-async def cmd_start(message: types.Message):
-    if message.chat.type != 'private':
-        return
-    if message.from_user.id not in AUTHORIZED_USERS:
-        await bot.send_message(message.from_user.id, "Извините, у вас нет доступа к этой функции.")
-    else:
-        kb = [
-            [
-                types.KeyboardButton(text="Удалить пользователя"),
-            ],
-        ]
-        keyboard = types.ReplyKeyboardMarkup(
-            keyboard=kb,
-            resize_keyboard=True,
-            one_time_keyboard=True,
-            input_field_placeholder="выберите одно из действий"
-        )
-        await message.reply("Выберите действие", reply_markup=keyboard)
-
-
-@dp.message(F.text.lower() == "удалить пользователя")
-async def with_puree(message: types.Message, state: FSMContext):
-    if message.chat.type != ChatType.PRIVATE:
-        return
-    if message.from_user.id not in AUTHORIZED_USERS:
-        await bot.send_message(message.from_user.id, "Извините, у вас нет доступа к этой функции.")
-    else:
-        await state.set_state(Form.username)
-        await message.reply("Напишите username пользователя, которого хотите удалить:")
 
 
 async def delete_user_from_chats(user, username, message):
