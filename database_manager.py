@@ -40,7 +40,6 @@ def init_database():
     conn.commit()
 
 
-
 def execute_query(query, params=None):
     conn = get_connection_to_database()
     cursor = conn.cursor()
@@ -78,6 +77,7 @@ def delete_user_from_database(user_id):
     query = "DELETE FROM users WHERE user_id = %s"
     params = (user_id,)
     execute_and_commit_query(query, params)
+
 
 def delete_user_relations(user_id):
     query = "DELETE FROM user_regions WHERE user_id = %s"
@@ -149,3 +149,13 @@ def get_invite_links_for_region(region_id):
     """, (region_id,))
 
     return [row[0] for row in cursor.fetchall()]
+
+
+def add_links_to_database(links, region_id):
+    conn = get_connection_to_database()
+    cursor = conn.cursor()
+    for link in links:
+        cursor.execute("""
+            INSERT INTO invitation_links (link, region_id) VALUES (%s, %s)
+        """, (link, region_id))
+    conn.commit()

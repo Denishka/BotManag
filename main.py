@@ -6,7 +6,7 @@ from aiogram import F, Router, types
 from aiogram import exceptions
 from aiogram.enums.chat_type import ChatType
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.filters import Command
+from aiogram.filters import Command, Filter
 from aiogram.filters.callback_data import CallbackData
 from aiogram.filters.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
@@ -16,7 +16,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from config_reader import config
 from database_manager import init_database, get_connection_to_database, get_all_regions, get_chat_ids, \
     delete_user_from_database, add_user_to_regions, insert_user_to_database, get_user_by_username_from_database, \
-    get_user_by_id_from_database
+    get_user_by_id_from_database, add_links_to_database
 
 bot = Bot(token=config.bot_token.get_secret_value())
 
@@ -81,12 +81,15 @@ async def update_region_text_fab(message: types.Message, new_regions: list, regi
             f"В какие регионы вы хотите добавить пользователя с именем {forwarded_users[319186657]['username']} и ID {forwarded_users[319186657]['user_id']} ? Выбранные регионы:  {', '.join(new_regions)}",
             reply_markup=get_keyboard_fab(regions)
         )
+
+
 async def update_region_text_fab_2(message: types.Message, new_region: str, regions):
     with suppress(TelegramBadRequest):
         await message.edit_text(
             f"В какие регионы вы хотите добавить ссылки-приглашения? Выбранный регион: {new_region}",
             reply_markup=get_keyboard_fab_2(regions)
         )
+
 
 @dp.callback_query(RegionCallbackFactory.filter(F.action == "select"))
 async def callbacks_region_select(
@@ -151,6 +154,7 @@ def get_keyboard_fab(regions):
     builder.adjust(2)
     return builder.as_markup()
 
+
 def get_keyboard_fab_2(regions):
     builder = InlineKeyboardBuilder()
     for region in regions:
@@ -163,6 +167,45 @@ def get_keyboard_fab_2(regions):
     # Выравниваем кнопки по 3 в ряд
     builder.adjust(2)
     return builder.as_markup()
+
+
+def get_region_id_from_last_message(message_text):
+    conn = get_connection_to_database()
+    cursor = conn.cursor()
+
+    # Извлекаем имя региона из сообщения
+    region_name = message_text
+
+    # Получаем id региона по его имени
+    cursor.execute("""
+        SELECT id FROM regions
+        WHERE name = %s
+    """, (region_name,))
+    region = cursor.fetchone()
+
+    return region['id']
+
+class RegionFilter(Filter):
+    async def check(self, message: types.Message):
+        return message.text.lower() in get_all_regions()
+
+    async def __call__(self, message: types.Message):
+        return await self.check(message)
+
+region_filter = RegionFilter()
+
+@dp.message(region_filter)
+async def region_selected(message: types.Message):
+    await message.answer("Отправьте мне ссылки.")
+
+
+
+@dp.message(F.text.lower().startswith("https://t.me/joinchat/"))
+async def links_received(message: types.Message):
+    links = message.text.split()
+    region_id = get_region_id_from_last_message()
+    add_links_to_database(links, region_id)
+    await message.answer("Ссылки успешно добавлены в базу данных.")
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
