@@ -154,7 +154,42 @@ def get_keyboard_fab(regions):
     builder.adjust(2)
     return builder.as_markup()
 
+# Временное хранилище для выбранных регионов
+selected_regions = {}
 
+@dp.callback_query(RegionCallbackFactory.filter(F.action == "finish2"))
+async def callbacks_region_finish2(
+        callback: types.CallbackQuery,
+        callback_data: RegionCallbackFactory
+):
+    # Используем user_id, username и выбранные регионы из временного хранилища
+    user_info = forwarded_users.get(callback.message.chat.id)
+    if user_info is not None and 'regions' in user_info:
+        await add_user_to_regions(user_info['user_id'], user_info['username'], user_info['regions'])
+        region_names = [get_region_name_by_id(region) for region in user_info['regions']]
+        await callback.message.edit_text(
+            f"Выбор регионов завершен. Выбранные регионы: {', '.join(region_names)}. Теперь отправьте ссылки в чат.")
+        # Сохраняем выбранные регионы во временное хранилище
+        selected_regions[callback.message.chat.id] = user_info['region']
+    else:
+        await callback.message.edit_text("Выбор регионов завершен, отправьте ссылки для добавления")
+        selected_regions[callback.message.chat.id] = user_info['region']
+    await callback.answer()
+
+@dp.message(F.text.lower().startswith("https://t.me/"))
+async def links_received(message: types.Message):
+    links = message.text.split()
+    # Получаем регион из временного хранилища
+    region_id = selected_regions.get(message.chat.id)
+    if region_id is not None:
+        add_links_to_database(links, region_id)
+        await message.answer("Ссылки успешно добавлены в базу данных.")
+    else:
+        await message.answer("Не удалось найти выбранный регион. Пожалуйста, выберите регион снова.")
+
+
+
+region = []
 def get_keyboard_fab_2(regions):
     builder = InlineKeyboardBuilder()
     for region in regions:
@@ -162,7 +197,7 @@ def get_keyboard_fab_2(regions):
             text=region[1], callback_data=RegionCallbackFactory(action="select_one_region", region=region[0])
         )
     builder.button(
-        text="Подтвердить", callback_data=RegionCallbackFactory(action="finish")
+        text="Подтвердить", callback_data=RegionCallbackFactory(action="finish2")
     )
     # Выравниваем кнопки по 3 в ряд
     builder.adjust(2)
@@ -200,12 +235,7 @@ async def region_selected(message: types.Message):
 
 
 
-@dp.message(F.text.lower().startswith("https://t.me/joinchat/"))
-async def links_received(message: types.Message):
-    links = message.text.split()
-    region_id = get_region_id_from_last_message()
-    add_links_to_database(links, region_id)
-    await message.answer("Ссылки успешно добавлены в базу данных.")
+
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):

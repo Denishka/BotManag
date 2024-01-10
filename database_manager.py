@@ -10,7 +10,6 @@ def init_database():
     cursor = conn.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS invitation_links (
-            id SERIAL PRIMARY KEY,
             link TEXT,
             region_id INTEGER REFERENCES regions (id)
         )
