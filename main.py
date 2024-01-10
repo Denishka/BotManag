@@ -50,7 +50,7 @@ def get_invite_links_for_user(user_id):
         """, (region_id,))
         invite_links.extend([row[0] for row in cursor.fetchall()])
 
-    return invite_links
+    return invite_links[1]
 
 
 @dp.callback_query(lambda c: c.data == 'get_links')
