@@ -17,6 +17,7 @@ from config_reader import config
 from database_manager import init_database, get_connection_to_database, get_all_regions, get_chat_ids, \
     delete_user_from_database, add_user_to_regions, insert_user_to_database, get_user_by_username_from_database, \
     get_user_by_id_from_database, add_links_to_database
+from keyboards.for_questions import get_keyboard_fab_2, get_keyboard_fab
 
 bot = Bot(token=config.bot_token.get_secret_value())
 
@@ -141,18 +142,7 @@ async def callbacks_region_finish(
     await callback.answer()
 
 
-def get_keyboard_fab(regions):
-    builder = InlineKeyboardBuilder()
-    for region in regions:
-        builder.button(
-            text=region[1], callback_data=RegionCallbackFactory(action="select", region=region[0])
-        )
-    builder.button(
-        text="Подтвердить", callback_data=RegionCallbackFactory(action="finish")
-    )
-    # Выравниваем кнопки по 3 в ряд
-    builder.adjust(2)
-    return builder.as_markup()
+
 
 # Временное хранилище для выбранных регионов
 selected_regions = {}
@@ -190,18 +180,7 @@ async def links_received(message: types.Message):
 
 
 region = []
-def get_keyboard_fab_2(regions):
-    builder = InlineKeyboardBuilder()
-    for region in regions:
-        builder.button(
-            text=region[1], callback_data=RegionCallbackFactory(action="select_one_region", region=region[0])
-        )
-    builder.button(
-        text="Подтвердить", callback_data=RegionCallbackFactory(action="finish2")
-    )
-    # Выравниваем кнопки по 3 в ряд
-    builder.adjust(2)
-    return builder.as_markup()
+
 
 
 def get_region_id_from_last_message(message_text):
@@ -232,6 +211,7 @@ region_filter = RegionFilter()
 @dp.message(region_filter)
 async def region_selected(message: types.Message):
     await message.answer("Отправьте мне ссылки.")
+
 
 
 
