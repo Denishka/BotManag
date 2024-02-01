@@ -217,27 +217,7 @@ async def region_selected(message: types.Message):
 
 
 
-@dp.message(Command("start"))
-async def cmd_start(message: types.Message):
-    # if message.chat.type != 'private':
-    #     return
-    # if message.from_user.id not in AUTHORIZED_USERS:
-    #     await bot.send_message(message.from_user.id, "Извините, у вас нет доступа к этой функции.")
-    # else:
-    kb = [
-        [
-            types.KeyboardButton(text="Удалить пользователя"),
-            types.KeyboardButton(text="Получить ссылки"),
-            types.KeyboardButton(text="Добавить ссылки"),
-        ],
-    ]
-    keyboard = types.ReplyKeyboardMarkup(
-        keyboard=kb,
-        resize_keyboard=True,
-        one_time_keyboard=True,
-        input_field_placeholder="выберите одно из действий"
-    )
-    await message.reply("Выберите действие", reply_markup=keyboard)
+
 
 
 @dp.message(F.text.lower() == "добавить ссылки")
@@ -260,15 +240,7 @@ async def with_puree(message: types.Message, state: FSMContext):
         await bot.send_message(message.from_user.id, "Извините, ссылок для вас не найдено.")
 
 
-@dp.message(F.text.lower() == "удалить пользователя")
-async def with_puree(message: types.Message, state: FSMContext):
-    if message.chat.type != ChatType.PRIVATE:
-        return
-    if message.from_user.id not in AUTHORIZED_USERS:
-        await bot.send_message(message.from_user.id, "Извините, у вас нет доступа к этой функции.")
-    else:
-        await state.set_state(Form.username)
-        await message.reply("Напишите username пользователя, которого хотите удалить:")
+
 
 
 @dp.chat_member()
@@ -294,48 +266,13 @@ async def delete_user_from_chats(user, username, message):
     await message.answer(f"Пользователь {username} был удален")
 
 
-class Form(StatesGroup):
-    confirm = State()
-    username = State()
 
 
-@dp.message(Form.username)
-async def process_username(message: types.Message, state: FSMContext):
-    if message.from_user.id not in AUTHORIZED_USERS:
-        await bot.send_message(message.from_user.id, "Извините, у вас нет доступа к этой функции.")
-    else:
-        username = message.text
-        user = get_user_by_username_from_database(username)
-        if user:
-            await state.update_data(name=message.text)
-            await state.set_state(Form.confirm)
-            await message.answer(
-                "Вы действительно хотите удалить пользователя?",
-                reply_markup=ReplyKeyboardMarkup(
-                    keyboard=[
-                        [
-                            KeyboardButton(text="Да"),
-                            KeyboardButton(text="Нет"),
-                        ]
-                    ],
-                    resize_keyboard=True,
-                    one_time_keyboard=True,
-                ),
-            )
-        else:
-            await message.reply(f"Пользователь {username} не найден")
-            await state.clear()
 
 
-@dp.message(Form.confirm, F.text.casefold() == "да")
-async def process_like_write_bots(message: types.Message, state: FSMContext):
-    dict_inf = await state.get_data()
-    username = dict_inf["name"]
-    user = get_user_by_username_from_database(username)
-    await delete_user_from_chats(user, username, message)
-    await message.reply("Пользователь удален!")
-    await cmd_start(message)
-    await state.clear()
+
+
+
 
 
 @dp.message(Form.confirm, F.text.casefold() == "нет")

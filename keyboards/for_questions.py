@@ -19,6 +19,8 @@ from database_manager import init_database, get_connection_to_database, get_all_
     get_user_by_id_from_database, add_links_to_database
 from main import RegionCallbackFactory
 
+router = Router()
+
 
 def get_keyboard_fab(regions):
     builder = InlineKeyboardBuilder()
@@ -46,3 +48,6 @@ def get_keyboard_fab_2(regions):
     # Выравниваем кнопки по 3 в ряд
     builder.adjust(2)
     return builder.as_markup()
+
+
+
