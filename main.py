@@ -54,12 +54,7 @@ def get_invite_links_for_user(user_id):
     return invite_links
 
 
-@dp.callback_query(lambda c: c.data == 'get_links')
-async def process_callback(callback_query: types.CallbackQuery):
-    user_id = callback_query.from_user.id
-    links = get_invite_links_for_user(user_id)
-    text = "\n".join(links)
-    await bot.send_message(callback_query.from_user.id, text)
+
 
 
 def get_region_name_by_id(region_id):
@@ -275,11 +270,7 @@ async def delete_user_from_chats(user, username, message):
 
 
 
-@dp.message(Form.confirm, F.text.casefold() == "нет")
-async def process_dont_like_write_bots(message: types.Message, state: FSMContext):
-    await message.reply("Вы отказались удалять пользователя")
-    await cmd_start(message)
-    await state.clear()
+
 
 
 @dp.message()

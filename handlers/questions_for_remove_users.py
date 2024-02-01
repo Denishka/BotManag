@@ -24,9 +24,12 @@ from main import bot, delete_user_from_chats
 router = Router()
 AUTHORIZED_USERS = [319186657]  # id HR
 
+
 class Form(StatesGroup):
     confirm = State()
     username = State()
+
+
 @router.message(F.text.lower() == "удалить пользователя")
 async def with_puree(message: types.Message, state: FSMContext):
     if message.chat.type != ChatType.PRIVATE:
@@ -36,6 +39,7 @@ async def with_puree(message: types.Message, state: FSMContext):
     else:
         await state.set_state(Form.username)
         await message.reply("Напишите username пользователя, которого хотите удалить:")
+
 
 @router.message(Form.username)
 async def process_username(message: types.Message, state: FSMContext):
@@ -64,6 +68,7 @@ async def process_username(message: types.Message, state: FSMContext):
             await message.reply(f"Пользователь {username} не найден")
             await state.clear()
 
+
 @router.message(Form.confirm, F.text.casefold() == "да")
 async def process_like_write_bots(message: types.Message, state: FSMContext):
     dict_inf = await state.get_data()
@@ -71,5 +76,12 @@ async def process_like_write_bots(message: types.Message, state: FSMContext):
     user = get_user_by_username_from_database(username)
     await delete_user_from_chats(user, username, message)
     await message.reply("Пользователь удален!")
+    await cmd_start(message)
+    await state.clear()
+
+
+@router.message(Form.confirm, F.text.casefold() == "нет")
+async def process_dont_like_write_bots(message: types.Message, state: FSMContext):
+    await message.reply("Вы отказались удалять пользователя")
     await cmd_start(message)
     await state.clear()
