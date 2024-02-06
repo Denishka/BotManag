@@ -19,7 +19,6 @@ from database_manager import init_database, get_connection_to_database, get_all_
     get_user_by_id_from_database, add_links_to_database
 from handlers.response_at_start import cmd_start
 from keyboards.for_questions import get_keyboard_fab_2, get_keyboard_fab
-from main import  delete_user_from_chats
 
 router = Router()
 AUTHORIZED_USERS = [319186657]  # id HR
@@ -67,7 +66,17 @@ async def process_username(message: types.Message, state: FSMContext,bot: Bot):
         else:
             await message.reply(f"Пользователь {username} не найден")
             await state.clear()
-
+async def delete_user_from_chats(user, username, message,bot: Bot):
+    user_id = user[1]
+    chat_ids = get_chat_ids()
+    for chat_id_tuple in chat_ids:
+        chat_id = int(chat_id_tuple[0])
+        try:
+            await bot.ban_chat_member(chat_id, user_id)
+        except exceptions.TelegramBadRequest:
+            continue
+    delete_user_from_database(user_id)
+    await message.answer(f"Пользователь {username} был удален")
 
 @router.message(Form.confirm, F.text.casefold() == "да")
 async def process_like_write_bots(message: types.Message, state: FSMContext):
@@ -86,3 +95,14 @@ async def process_dont_like_write_bots(message: types.Message, state: FSMContext
     await message.reply("Вы отказались удалять пользователя")
     await cmd_start(message)
     await state.clear()
+async def delete_user_from_chats(user, username, message,bot: Bot):
+    user_id = user[1]
+    chat_ids = get_chat_ids()
+    for chat_id_tuple in chat_ids:
+        chat_id = int(chat_id_tuple[0])
+        try:
+            await bot.ban_chat_member(chat_id, user_id)
+        except exceptions.TelegramBadRequest:
+            continue
+    delete_user_from_database(user_id)
+    await message.answer(f"Пользователь {username} был удален")

@@ -1,5 +1,11 @@
-from aiogram import types, Router
+from aiogram import Bot
+from aiogram import Bot
+from aiogram import F, Router, types
 
+from callback_factories import RegionCallbackFactory
+from database_manager import get_all_regions, add_user_to_regions, get_region_name_by_id, get_invite_links_for_user
+from handlers.questions_for_added_links import update_region_text_fab_2
+from main import forwarded_users, selected_regions, update_region_text_fab
 
 router = Router()
 
@@ -11,7 +17,7 @@ async def process_callback(callback_query: types.CallbackQuery,bot: Bot):
     text = "\n".join(links)
     await bot.send_message(callback_query.from_user.id, text)
 
-@dp.callback_query(RegionCallbackFactory.filter(F.action == "select"))
+@router.callback_query(RegionCallbackFactory.filter(F.action == "select"))
 async def callbacks_region_select(
         callback: types.CallbackQuery,
         callback_data: RegionCallbackFactory
@@ -28,7 +34,7 @@ async def callbacks_region_select(
     await update_region_text_fab(callback.message, region_names, regions)
     await callback.answer()
 
-@dp.callback_query(RegionCallbackFactory.filter(F.action == "select_one_region"))
+@router.callback_query(RegionCallbackFactory.filter(F.action == "select_one_region"))
 async def callbacks_region_select(
         callback: types.CallbackQuery,
         callback_data: RegionCallbackFactory
@@ -42,7 +48,7 @@ async def callbacks_region_select(
     await update_region_text_fab_2(callback.message, region_name, regions)
     await callback.answer()
 
-@dp.callback_query(RegionCallbackFactory.filter(F.action == "finish"))
+@router.callback_query(RegionCallbackFactory.filter(F.action == "finish"))
 async def callbacks_region_finish(
         callback: types.CallbackQuery,
         callback_data: RegionCallbackFactory
@@ -58,7 +64,7 @@ async def callbacks_region_finish(
         await callback.message.edit_text("Выбор регионов завершен.")
     await callback.answer()
 
-@dp.callback_query(RegionCallbackFactory.filter(F.action == "finish2"))
+@router.callback_query(RegionCallbackFactory.filter(F.action == "finish2"))
 async def callbacks_region_finish2(
         callback: types.CallbackQuery,
         callback_data: RegionCallbackFactory
