@@ -18,58 +18,13 @@ from database_manager import init_database, get_connection_to_database, get_all_
     delete_user_from_database, add_user_to_regions, insert_user_to_database, get_user_by_username_from_database, \
     get_user_by_id_from_database, add_links_to_database
 from keyboards.for_questions import get_keyboard_fab_2, get_keyboard_fab
+from handlers import questions_for_get_links,questions_for_added_links, questions_for_remove_users, response_at_start, questions_for_added_users
 
-bot = Bot(token=config.bot_token.get_secret_value())
 
-router = Router()
-dp = Dispatcher()
 
 AUTHORIZED_USERS = [319186657]  # id HR
 
 forwarded_users = {}
-
-
-def get_invite_links_for_user(user_id):
-    conn = get_connection_to_database()
-    cursor = conn.cursor()
-
-    # Получаем регионы, связанные с пользователем
-    cursor.execute("""
-        SELECT region_id
-        FROM user_regions
-        WHERE user_id = %s
-    """, (user_id,))
-    user_regions = [row[0] for row in cursor.fetchall()]
-
-    # Получаем ссылки приглашения для каждого региона
-    invite_links = []
-    for region_id in user_regions:
-        cursor.execute("""
-            SELECT link
-            FROM invitation_links
-            WHERE region_id = %s
-        """, (region_id,))
-        invite_links.extend([row[0] for row in cursor.fetchall()])
-
-    return invite_links
-
-
-
-
-
-def get_region_name_by_id(region_id):
-    conn = get_connection_to_database()
-    cursor = conn.cursor()
-    cursor.execute("SELECT name FROM regions WHERE id = %s", (region_id,))
-    result = cursor.fetchone()
-    conn.close()
-    return result[0] if result else None
-
-
-class RegionCallbackFactory(CallbackData, prefix="region"):
-    action: str
-    region: Optional[int] = None
-
 
 async def update_region_text_fab(message: types.Message, new_regions: list, regions):
     with suppress(TelegramBadRequest):
@@ -78,177 +33,16 @@ async def update_region_text_fab(message: types.Message, new_regions: list, regi
             reply_markup=get_keyboard_fab(regions)
         )
 
-
-async def update_region_text_fab_2(message: types.Message, new_region: str, regions):
-    with suppress(TelegramBadRequest):
-        await message.edit_text(
-            f"В какие регионы вы хотите добавить ссылки-приглашения? Выбранный регион: {new_region}",
-            reply_markup=get_keyboard_fab_2(regions)
-        )
-
-
-@dp.callback_query(RegionCallbackFactory.filter(F.action == "select"))
-async def callbacks_region_select(
-        callback: types.CallbackQuery,
-        callback_data: RegionCallbackFactory
-):
-    user_info = forwarded_users.get(callback.from_user.id, {})
-    # Если регион еще не выбран, инициализируем список
-    if 'regions' not in user_info:
-        user_info['regions'] = []
-    # Добавляем выбранный регион в список
-    user_info['regions'].append(callback_data.region)
-    forwarded_users[callback.from_user.id] = user_info
-    region_names = [get_region_name_by_id(region) for region in user_info['regions']]
-    regions = get_all_regions()
-    await update_region_text_fab(callback.message, region_names, regions)
-    await callback.answer()
-
-
-@dp.callback_query(RegionCallbackFactory.filter(F.action == "select_one_region"))
-async def callbacks_region_select(
-        callback: types.CallbackQuery,
-        callback_data: RegionCallbackFactory
-):
-    user_info = forwarded_users.get(callback.from_user.id, {})
-    # Устанавливаем выбранный регион
-    user_info['region'] = callback_data.region
-    forwarded_users[callback.from_user.id] = user_info
-    region_name = get_region_name_by_id(user_info['region'])
-    regions = get_all_regions()
-    await update_region_text_fab_2(callback.message, region_name, regions)
-    await callback.answer()
-
-
-@dp.callback_query(RegionCallbackFactory.filter(F.action == "finish"))
-async def callbacks_region_finish(
-        callback: types.CallbackQuery,
-        callback_data: RegionCallbackFactory
-):
-    # Используем user_id, username и выбранные регионы из временного хранилища
-    user_info = forwarded_users.get(callback.message.chat.id)
-    if user_info is not None and 'regions' in user_info:
-        await add_user_to_regions(user_info['user_id'], user_info['username'], user_info['regions'])
-        region_names = [get_region_name_by_id(region) for region in user_info['regions']]
-        await callback.message.edit_text(
-            f"Выбор регионов завершен. Выбранные регионы: {', '.join(region_names)}")
-    else:
-        await callback.message.edit_text("Выбор регионов завершен.")
-    await callback.answer()
-
-
-
-
 # Временное хранилище для выбранных регионов
 selected_regions = {}
-
-@dp.callback_query(RegionCallbackFactory.filter(F.action == "finish2"))
-async def callbacks_region_finish2(
-        callback: types.CallbackQuery,
-        callback_data: RegionCallbackFactory
-):
-    # Используем user_id, username и выбранные регионы из временного хранилища
-    user_info = forwarded_users.get(callback.message.chat.id)
-    if user_info is not None and 'regions' in user_info:
-        await add_user_to_regions(user_info['user_id'], user_info['username'], user_info['regions'])
-        region_names = [get_region_name_by_id(region) for region in user_info['regions']]
-        await callback.message.edit_text(
-            f"Выбор регионов завершен. Выбранные регионы: {', '.join(region_names)}. Теперь отправьте ссылки в чат.")
-        # Сохраняем выбранные регионы во временное хранилище
-        selected_regions[callback.message.chat.id] = user_info['region']
-    else:
-        await callback.message.edit_text("Выбор регионов завершен, отправьте ссылки для добавления")
-        selected_regions[callback.message.chat.id] = user_info['region']
-    await callback.answer()
-
-@dp.message(F.text.lower().startswith("https://t.me/"))
-async def links_received(message: types.Message):
-    links = message.text.split()
-    # Получаем регион из временного хранилища
-    region_id = selected_regions.get(message.chat.id)
-    if region_id is not None:
-        add_links_to_database(links, region_id)
-        await message.answer("Ссылки успешно добавлены в базу данных.")
-    else:
-        await message.answer("Не удалось найти выбранный регион. Пожалуйста, выберите регион снова.")
-
 
 
 region = []
 
-
-
-def get_region_id_from_last_message(message_text):
-    conn = get_connection_to_database()
-    cursor = conn.cursor()
-
-    # Извлекаем имя региона из сообщения
-    region_name = message_text
-
-    # Получаем id региона по его имени
-    cursor.execute("""
-        SELECT id FROM regions
-        WHERE name = %s
-    """, (region_name,))
-    region = cursor.fetchone()
-
-    return region['id']
-
-class RegionFilter(Filter):
-    async def check(self, message: types.Message):
-        return message.text.lower() in get_all_regions()
-
-    async def __call__(self, message: types.Message):
-        return await self.check(message)
-
 region_filter = RegionFilter()
 
-@dp.message(region_filter)
-async def region_selected(message: types.Message):
-    await message.answer("Отправьте мне ссылки.")
 
-
-
-
-
-
-
-
-
-@dp.message(F.text.lower() == "добавить ссылки")
-async def with_puree(message: types.Message):
-    regions = get_all_regions()
-    keyboard = get_keyboard_fab_2(regions)
-    await message.answer(
-        f"В какие регионы вы хотите добавить ссылки-приглашения? Выбранный регион: ",
-        reply_markup=keyboard
-    )
-
-
-@dp.message(F.text.lower() == "получить ссылки")
-async def with_puree(message: types.Message, state: FSMContext):
-    result = get_invite_links_for_user(message.from_user.id)
-    if result:
-        result_text = "\n".join(result)
-        await bot.send_message(message.from_user.id, result_text)
-    else:
-        await bot.send_message(message.from_user.id, "Извините, ссылок для вас не найдено.")
-
-
-
-
-
-@dp.chat_member()
-async def new_chat_member(update: types.ChatMemberUpdated):
-    if update.new_chat_member.status == 'member':
-        user = update.new_chat_member.user
-        users = get_user_by_id_from_database(user)
-        if not users:
-            insert_user_to_database(user)
-        await bot.send_message(update.chat.id, f'Привет, {user.full_name}, как дела? Ваш ID: {user.id}')
-
-
-async def delete_user_from_chats(user, username, message):
+async def delete_user_from_chats(user, username, message,bot: Bot):
     user_id = user[1]
     chat_ids = get_chat_ids()
     for chat_id_tuple in chat_ids:
@@ -259,42 +53,20 @@ async def delete_user_from_chats(user, username, message):
             continue
     delete_user_from_database(user_id)
     await message.answer(f"Пользователь {username} был удален")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-@dp.message()
-async def forward_message(message: types.Message):
-    if message.forward_from:
-        user_id = message.forward_from.id
-        username = message.forward_from.username
-        forwarded_users[message.chat.id] = {'user_id': user_id, 'username': username}
-        # Получаем список регионов из базы данных
-        regions = get_all_regions()
-        keyboard = get_keyboard_fab(regions)
-
-        await message.answer(
-            f"В какие регионы вы хотите добавить пользователя с именем {username} и ID {user_id} ? Выбранные регионы: ",
-            reply_markup=keyboard
-        )
-    else:
-        return
-
-
 async def main():
+    bot = Bot(token=config.bot_token.get_secret_value())
+    dp = Dispatcher()
+    dp.include_router(response_at_start)
+    dp.include_router(questions_for_remove_users)
+    dp.include_router(questions_for_added_links)
+    dp.include_router(questions_for_get_links)
+    dp.include_router(questions_for_added_users)
+
     await dp.start_polling(bot)
 
 
 if __name__ == '__main__':
     init_database()
     asyncio.run(main())
+
+

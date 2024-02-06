@@ -158,3 +158,51 @@ def add_links_to_database(links, region_id):
             INSERT INTO invitation_links (link, region_id) VALUES (%s, %s)
         """, (link, region_id))
     conn.commit()
+
+def get_invite_links_for_user(user_id):
+    conn = get_connection_to_database()
+    cursor = conn.cursor()
+
+    # Получаем регионы, связанные с пользователем
+    cursor.execute("""
+        SELECT region_id
+        FROM user_regions
+        WHERE user_id = %s
+    """, (user_id,))
+    user_regions = [row[0] for row in cursor.fetchall()]
+
+    # Получаем ссылки приглашения для каждого региона
+    invite_links = []
+    for region_id in user_regions:
+        cursor.execute("""
+            SELECT link
+            FROM invitation_links
+            WHERE region_id = %s
+        """, (region_id,))
+        invite_links.extend([row[0] for row in cursor.fetchall()])
+
+    return invite_links
+
+def get_region_name_by_id(region_id):
+    conn = get_connection_to_database()
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM regions WHERE id = %s", (region_id,))
+    result = cursor.fetchone()
+    conn.close()
+    return result[0] if result else None
+
+def get_region_id_from_last_message(message_text):
+    conn = get_connection_to_database()
+    cursor = conn.cursor()
+
+    # Извлекаем имя региона из сообщения
+    region_name = message_text
+
+    # Получаем id региона по его имени
+    cursor.execute("""
+        SELECT id FROM regions
+        WHERE name = %s
+    """, (region_name,))
+    region = cursor.fetchone()
+
+    return region['id']

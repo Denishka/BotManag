@@ -19,7 +19,7 @@ from database_manager import init_database, get_connection_to_database, get_all_
     get_user_by_id_from_database, add_links_to_database
 from handlers.response_at_start import cmd_start
 from keyboards.for_questions import get_keyboard_fab_2, get_keyboard_fab
-from main import bot, delete_user_from_chats
+from main import  delete_user_from_chats
 
 router = Router()
 AUTHORIZED_USERS = [319186657]  # id HR
@@ -31,7 +31,7 @@ class Form(StatesGroup):
 
 
 @router.message(F.text.lower() == "удалить пользователя")
-async def with_puree(message: types.Message, state: FSMContext):
+async def with_puree(message: types.Message, state: FSMContext,bot: Bot):
     if message.chat.type != ChatType.PRIVATE:
         return
     if message.from_user.id not in AUTHORIZED_USERS:
@@ -42,7 +42,7 @@ async def with_puree(message: types.Message, state: FSMContext):
 
 
 @router.message(Form.username)
-async def process_username(message: types.Message, state: FSMContext):
+async def process_username(message: types.Message, state: FSMContext,bot: Bot):
     if message.from_user.id not in AUTHORIZED_USERS:
         await bot.send_message(message.from_user.id, "Извините, у вас нет доступа к этой функции.")
     else:
@@ -78,6 +78,7 @@ async def process_like_write_bots(message: types.Message, state: FSMContext):
     await message.reply("Пользователь удален!")
     await cmd_start(message)
     await state.clear()
+
 
 
 @router.message(Form.confirm, F.text.casefold() == "нет")
