@@ -12,7 +12,9 @@ from keyboards.for_questions import get_keyboard_fab_2
 region = []
 
 region_filter = RegionFilter()
-router=Router()
+router = Router()
+
+
 @router.message(F.text.lower() == "добавить ссылки")
 async def with_puree(message: types.Message):
     regions = get_all_regions()
@@ -22,9 +24,11 @@ async def with_puree(message: types.Message):
         reply_markup=keyboard
     )
 
+
 @router.message(region_filter)
 async def region_selected(message: types.Message):
     await message.answer("Отправьте мне ссылки.")
+
 
 async def update_region_text_fab_2(message: types.Message, new_region: str, regions):
     with suppress(TelegramBadRequest):
@@ -32,6 +36,8 @@ async def update_region_text_fab_2(message: types.Message, new_region: str, regi
             f"В какие регионы вы хотите добавить ссылки-приглашения? Выбранный регион: {new_region}",
             reply_markup=get_keyboard_fab_2(regions)
         )
+
+
 @router.message(F.text.lower().startswith("https://t.me/"))
 async def links_received(message: types.Message):
     links = message.text.split()
