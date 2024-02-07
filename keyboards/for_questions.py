@@ -1,9 +1,6 @@
-from aiogram import Router
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from callback_factories import RegionCallbackFactory
-
-router = Router()
+from handlers.callback_factories import RegionCallbackFactory
 
 
 def get_keyboard_fab(regions):
@@ -32,6 +29,3 @@ def get_keyboard_fab_2(regions):
     # Выравниваем кнопки по 3 в ряд
     builder.adjust(2)
     return builder.as_markup()
-
-
-

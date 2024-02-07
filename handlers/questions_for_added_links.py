@@ -6,6 +6,7 @@ from aiogram.exceptions import TelegramBadRequest
 
 from database_manager import get_all_regions, add_links_to_database
 from filters.changing_regions import RegionFilter
+from handlers.questions_for_added_users import selected_regions
 from keyboards.for_questions import get_keyboard_fab_2
 
 region = []

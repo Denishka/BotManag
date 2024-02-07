@@ -1,11 +1,11 @@
 from aiogram import Bot
-from aiogram import Bot
 from aiogram import F, Router, types
 
-from callback_factories import RegionCallbackFactory
+from handlers.callback_factories import RegionCallbackFactory
 from database_manager import get_all_regions, add_user_to_regions, get_region_name_by_id, get_invite_links_for_user
 from handlers.questions_for_added_links import update_region_text_fab_2
-from main import forwarded_users, selected_regions, update_region_text_fab
+from handlers.questions_for_added_users import selected_regions
+from main import forwarded_users, update_region_text_fab
 
 router = Router()
 
