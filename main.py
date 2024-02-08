@@ -1,17 +1,10 @@
 import asyncio
-from contextlib import suppress
 
 from aiogram import Dispatcher, Bot
-from aiogram import types
-from aiogram.exceptions import TelegramBadRequest
-
 from config_reader import config
 from database_manager import init_database
-from filters.changing_regions import RegionFilter
 from handlers import questions_for_get_links, questions_for_added_links, questions_for_remove_users, response_at_start, \
-    questions_for_added_users, callbacks
-from handlers.questions_for_added_users import forwarded_users
-from keyboards.for_questions import get_keyboard_fab
+    questions_for_added_users
 
 AUTHORIZED_USERS = [319186657]  # id HR
 
@@ -31,5 +24,3 @@ async def main():
 if __name__ == '__main__':
     init_database()
     asyncio.run(main())
-
-

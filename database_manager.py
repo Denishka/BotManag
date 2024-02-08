@@ -42,9 +42,7 @@ def init_database():
 def execute_query(query, params=None):
     conn = get_connection_to_database()
     cursor = conn.cursor()
-
     cursor.execute(query, params)
-
     result = cursor.fetchall()
 
     conn.close()
@@ -69,10 +67,8 @@ def get_all_regions():
 
 
 def delete_user_from_database(user_id):
-    # Удаление связей пользователя
     delete_user_relations(user_id)
 
-    # Удаление пользователя
     query = "DELETE FROM users WHERE user_id = %s"
     params = (user_id,)
     execute_and_commit_query(query, params)
@@ -110,8 +106,6 @@ async def add_user_to_regions(user_id, username, region_ids):
     conn.commit()
 
 
-
-
 def insert_user_to_database(user):
     query = """
         INSERT INTO users (user_id, username, full_name) VALUES (%s, %s, %s)
@@ -130,21 +124,6 @@ def get_user_by_id_from_database(user):
     query = "SELECT * FROM users WHERE user_id = %s"
     params = (user.id,)
     return execute_query(query, params)[0]
-
-
-# def get_user_regions(user_id):
-#     conn = get_connection_to_database()
-#     cursor = conn.cursor()
-#
-#     cursor.execute("""
-#         SELECT regions.name
-#         FROM users
-#         JOIN user_regions ON users.id = user_regions.user_id
-#         JOIN regions ON user_regions.region_id = regions.id
-#         WHERE users.user_id = %s
-#     """, (user_id,))
-#
-#     return [row[0] for row in cursor.fetchall()]
 
 def get_invite_links_for_region(region_id):
     conn = get_connection_to_database()
@@ -168,19 +147,17 @@ def add_links_to_database(links, region_id):
         """, (link, region_id))
     conn.commit()
 
+
 def get_invite_links_for_user(user_id):
     conn = get_connection_to_database()
     cursor = conn.cursor()
 
-    # Получаем регионы, связанные с пользователем
     cursor.execute("""
         SELECT region_id
         FROM user_regions
         WHERE user_id = %s
     """, (user_id,))
     user_regions = [row[0] for row in cursor.fetchall()]
-
-    # Получаем ссылки приглашения для каждого региона
     invite_links = []
     for region_id in user_regions:
         cursor.execute("""
@@ -192,6 +169,7 @@ def get_invite_links_for_user(user_id):
 
     return invite_links
 
+
 def get_region_name_by_id(region_id):
     conn = get_connection_to_database()
     cursor = conn.cursor()
@@ -200,14 +178,11 @@ def get_region_name_by_id(region_id):
     conn.close()
     return result[0] if result else None
 
+
 def get_region_id_from_last_message(message_text):
     conn = get_connection_to_database()
     cursor = conn.cursor()
-
-    # Извлекаем имя региона из сообщения
     region_name = message_text
-
-    # Получаем id региона по его имени
     cursor.execute("""
         SELECT id FROM regions
         WHERE name = %s

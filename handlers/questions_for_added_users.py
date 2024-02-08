@@ -6,9 +6,9 @@ from handlers.callback_factories import RegionCallbackFactory
 from keyboards.for_questions import get_keyboard_fab
 
 forwarded_users = {}
-router = Router()
-
 selected_regions = {}
+
+router = Router()
 
 
 @router.message()

@@ -1,15 +1,13 @@
 from aiogram import Bot
-from aiogram import Bot
 from aiogram import F, Router, types
-from aiogram.fsm.context import FSMContext
 
 from database_manager import get_invite_links_for_user
 
-router=Router()
+router = Router()
 
 
 @router.message(F.text.lower() == "получить ссылки")
-async def with_puree(message: types.Message, state: FSMContext,bot: Bot):
+async def with_puree(message: types.Message, bot: Bot):
     result = get_invite_links_for_user(message.from_user.id)
     if result:
         result_text = "\n".join(result)

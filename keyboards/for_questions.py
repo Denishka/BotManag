@@ -12,7 +12,6 @@ def get_keyboard_fab(regions):
     builder.button(
         text="Подтвердить", callback_data=RegionCallbackFactory(action="finish")
     )
-    # Выравниваем кнопки по 3 в ряд
     builder.adjust(2)
     return builder.as_markup()
 
@@ -26,6 +25,5 @@ def get_keyboard_fab_2(regions):
     builder.button(
         text="Подтвердить", callback_data=RegionCallbackFactory(action="finish2")
     )
-    # Выравниваем кнопки по 3 в ряд
     builder.adjust(2)
     return builder.as_markup()
