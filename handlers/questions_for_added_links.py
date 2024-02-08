@@ -1,8 +1,6 @@
 from contextlib import suppress
-
 from aiogram import F, Router, types
 from aiogram.exceptions import TelegramBadRequest
-
 from database_manager import get_all_regions, add_links_to_database, add_user_to_regions, get_region_name_by_id
 from filters.changing_regions import RegionFilter
 from handlers.callback_factories import RegionCallbackFactory
@@ -23,6 +21,7 @@ async def with_puree(message: types.Message):
         f"В какие регионы вы хотите добавить ссылки-приглашения? Выбранный регион: ",
         reply_markup=keyboard
     )
+
 
 @router.message(F.text.lower().startswith("https://t.me/"))
 async def links_received(message: types.Message):
@@ -45,11 +44,11 @@ async def callbacks_region_select(
     forwarded_users[callback.from_user.id] = user_info
     region_name = get_region_name_by_id(user_info['region'])
     regions = get_all_regions()
-    await update_region_text_fab(callback.message, region_name, regions)
+    await update_region_text(callback.message, region_name, regions)
     await callback.answer()
 
 
-async def update_region_text_fab(message: types.Message, new_region: str, regions):
+async def update_region_text(message: types.Message, new_region: str, regions):
     with suppress(TelegramBadRequest):
         await message.edit_text(
             f"В какие регионы вы хотите добавить ссылки-приглашения? Выбранный регион: {new_region}",
@@ -57,7 +56,7 @@ async def update_region_text_fab(message: types.Message, new_region: str, region
         )
 
 
-@router.callback_query(RegionCallbackFactory.filter(F.action == "finish"))
+@router.callback_query(RegionCallbackFactory.filter(F.action == "finish2"))
 async def callbacks_region_finish(
         callback: types.CallbackQuery,
 ):
