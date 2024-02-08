@@ -8,6 +8,14 @@ def get_connection_to_database():
 def init_database():
     conn = get_connection_to_database()
     cursor = conn.cursor()
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS regions(
+            id SERIAL PRIMARY KEY,
+            name VARCHAR NOT NULL
+        )
+    ''')
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS invitation_links (
             link TEXT,
@@ -23,12 +31,6 @@ def init_database():
             )
         """)
 
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS regions(
-            id SERIAL PRIMARY KEY,
-            name VARCHAR NOT NULL
-        )
-    ''')
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS user_regions(
             user_id BIGINT REFERENCES users (user_id),
@@ -125,6 +127,7 @@ def get_user_by_id_from_database(user):
     params = (user.id,)
     return execute_query(query, params)[0]
 
+
 def get_invite_links_for_region(region_id):
     conn = get_connection_to_database()
     cursor = conn.cursor()
@@ -190,3 +193,17 @@ def get_region_id_from_last_message(message_text):
     region = cursor.fetchone()
 
     return region['id']
+
+
+def add_start_regions():
+    conn = get_connection_to_database()
+    cursor = conn.cursor()
+    regions = ['Ростов', 'Баку', 'Вне РФ', 'Удаленно']
+    for region in regions:
+        cursor.execute("""
+            INSERT INTO regions (name)
+            VALUES (%s)
+        """, (region,))
+    conn.commit()
+
+

@@ -2,7 +2,7 @@ import asyncio
 
 from aiogram import Dispatcher, Bot
 from config_reader import config
-from database_manager import init_database
+from database_manager import init_database, add_start_regions
 from handlers import questions_for_get_links, questions_for_added_links, questions_for_remove_users, response_at_start, \
     questions_for_added_users
 
@@ -23,4 +23,5 @@ async def main():
 
 if __name__ == '__main__':
     init_database()
+    add_start_regions()
     asyncio.run(main())
