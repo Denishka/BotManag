@@ -88,19 +88,28 @@ async def add_user_to_regions(user_id, username, region_ids):
     conn = get_connection_to_database()
     cursor = conn.cursor()
     cursor.execute("""
-        INSERT INTO users (user_id, username)
-        VALUES (%s, %s)
-        RETURNING id
-    """, (user_id, username))
+        SELECT id FROM users WHERE user_id = %s
+    """, (user_id,))
+    existing_user = cursor.fetchone()
 
-    # Добавляем связи пользователя с регионами
-    for region_id in region_ids:
+    if existing_user is None:
         cursor.execute("""
-            INSERT INTO user_regions (user_id, region_id)
+            INSERT INTO users (user_id, username)
             VALUES (%s, %s)
-        """, (user_id, region_id))
+            RETURNING id
+        """, (user_id, username))
+
+        for region_id in region_ids:
+            cursor.execute("""
+                INSERT INTO user_regions (user_id, region_id)
+                VALUES (%s, %s)
+            """, (user_id, region_id))
+    else:
+        return "Такой пользователь уже существует"
 
     conn.commit()
+
+
 
 
 def insert_user_to_database(user):
