@@ -8,9 +8,6 @@ router = Router()
 
 @router.message(Command("start"))
 async def cmd_start(message: types.Message):
-    # if message.chat.type != 'private':
-    #     return
-
     kb = [[types.KeyboardButton(text="Получить ссылки")]]
 
     if message.from_user.id in AUTHORIZED_USERS:
