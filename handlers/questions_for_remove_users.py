@@ -9,9 +9,9 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from database_manager import get_chat_ids, \
     delete_user_from_database, get_user_by_username_from_database
 from handlers.response_at_start import cmd_start
+from main import AUTHORIZED_USERS
 
 router = Router()
-AUTHORIZED_USERS = [319186657]  # id HR
 
 
 class Form(StatesGroup):

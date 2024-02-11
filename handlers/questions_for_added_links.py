@@ -52,7 +52,8 @@ async def update_region_text(message: types.Message, new_region: str, regions):
     with suppress(TelegramBadRequest):
         await message.edit_text(
             f"В какие регионы вы хотите добавить ссылки-приглашения? Выбранный регион: {new_region}",
-            reply_markup=get_keyboard_fab_2(regions)
+            reply_markup=get_keyboard_fab(regions, action="select_one_region", finish_action="finish2")
+
         )
 
 

@@ -1,6 +1,8 @@
 from aiogram import Router, types
 from aiogram.filters import Command
 
+from main import AUTHORIZED_USERS
+
 router = Router()
 
 
@@ -8,16 +10,13 @@ router = Router()
 async def cmd_start(message: types.Message):
     # if message.chat.type != 'private':
     #     return
-    # if message.from_user.id not in AUTHORIZED_USERS:
-    #     await bot.send_message(message.from_user.id, "Извините, у вас нет доступа к этой функции.")
-    # else:
-    kb = [
-        [
-            types.KeyboardButton(text="Удалить пользователя"),
-            types.KeyboardButton(text="Получить ссылки"),
-            types.KeyboardButton(text="Добавить ссылки"),
-        ],
-    ]
+
+    kb = [[types.KeyboardButton(text="Получить ссылки")]]
+
+    if message.from_user.id in AUTHORIZED_USERS:
+        kb.append([types.KeyboardButton(text="Удалить пользователя")])
+        kb.append([types.KeyboardButton(text="Добавить ссылки")])
+
     keyboard = types.ReplyKeyboardMarkup(
         keyboard=kb,
         resize_keyboard=True,
