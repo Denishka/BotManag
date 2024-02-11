@@ -201,9 +201,14 @@ def add_start_regions():
     regions = ['Ростов', 'Баку', 'Вне РФ', 'Удаленно']
     for region in regions:
         cursor.execute("""
-            INSERT INTO regions (name)
-            VALUES (%s)
+            SELECT * FROM regions WHERE name = %s
         """, (region,))
+        result = cursor.fetchone()
+        if result is None:
+            cursor.execute("""
+                INSERT INTO regions (name)
+                VALUES (%s)
+            """, (region,))
     conn.commit()
 
 
