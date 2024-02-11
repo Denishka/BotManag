@@ -5,7 +5,7 @@ from database_manager import get_all_regions, add_links_to_database, add_user_to
 from filters.changing_regions import RegionFilter
 from handlers.callback_factories import RegionCallbackFactory
 from handlers.questions_for_added_users import selected_regions, forwarded_users
-from keyboards.for_questions import get_keyboard_fab_2
+from keyboards.for_questions import get_keyboard_fab
 
 region = []
 
@@ -16,7 +16,7 @@ router = Router()
 @router.message(F.text.lower() == "добавить ссылки")
 async def with_puree(message: types.Message):
     regions = get_all_regions()
-    keyboard = get_keyboard_fab_2(regions)
+    keyboard = get_keyboard_fab(regions, action="select_one_region", finish_action="finish2")
     await message.answer(
         f"В какие регионы вы хотите добавить ссылки-приглашения? Выбранный регион: ",
         reply_markup=keyboard
