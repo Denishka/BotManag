@@ -6,7 +6,7 @@ from database_manager import init_database, add_start_regions
 from handlers import questions_for_get_links, questions_for_added_links, questions_for_remove_users, response_at_start, \
     questions_for_added_users
 
-AUTHORIZED_USERS = []  # id HR
+AUTHORIZED_USERS = [319186657]  # id HR
 
 
 async def main():

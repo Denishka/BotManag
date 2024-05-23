@@ -37,6 +37,9 @@ async def process_username(message: types.Message, state: FSMContext, bot: Bot):
     else:
         username = message.text
         user = get_user_by_username_from_database(username)
+        if user is None:
+            await message.reply(f"Пользователь {username} не найден")
+            await state.clear()
         if user:
             await state.update_data(name=message.text)
             await state.set_state(Form.confirm)
@@ -53,9 +56,7 @@ async def process_username(message: types.Message, state: FSMContext, bot: Bot):
                     one_time_keyboard=True,
                 ),
             )
-        else:
-            await message.reply(f"Пользователь {username} не найден")
-            await state.clear()
+
 
 
 @router.message(Form.confirm, F.text.casefold() == "да")

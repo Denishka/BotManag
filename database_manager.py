@@ -119,8 +119,11 @@ def insert_user_to_database(user):
 def get_user_by_username_from_database(username):
     query = "SELECT * FROM users WHERE username = %s"
     params = (username,)
-    return execute_query(query, params)[0]
-
+    result = execute_query(query, params)
+    if result:
+        return result[0]
+    else:
+        return None
 
 def get_user_by_id_from_database(user):
     query = "SELECT * FROM users WHERE user_id = %s"
