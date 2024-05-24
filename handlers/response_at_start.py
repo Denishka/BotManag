@@ -1,6 +1,8 @@
 from aiogram import Router, types
 from aiogram.filters import Command
+from aiogram.types import Message
 
+from database_manager import execute_and_commit_query
 from main import AUTHORIZED_USERS
 
 router = Router()
@@ -21,3 +23,15 @@ async def cmd_start(message: types.Message):
         input_field_placeholder="выберите одно из действий"
     )
     await message.reply("Выберите действие", reply_markup=keyboard)
+
+
+@router.message(lambda message: message.text == "get_chat_id")
+async def get_chat_id(message: Message):
+    chat_id = message.chat.id
+    insert_chat_query = """
+    INSERT INTO chat_list (chat_id)
+    VALUES (%s)
+    ON CONFLICT (chat_id) DO NOTHING;
+    """
+    execute_and_commit_query(insert_chat_query, (chat_id,))
+    print("Chat ID:", chat_id)

@@ -58,7 +58,6 @@ async def process_username(message: types.Message, state: FSMContext, bot: Bot):
             )
 
 
-
 @router.message(Form.confirm, F.text.casefold() == "да")
 async def process_like_write_bots(message: types.Message, state: FSMContext, bot: Bot):
     dict_inf = await state.get_data()

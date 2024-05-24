@@ -9,6 +9,7 @@ from handlers import questions_for_get_links, questions_for_added_links, questio
 AUTHORIZED_USERS = [319186657]  # id HR
 
 
+
 async def main():
     bot = Bot(token=config.bot_token.get_secret_value())
     dp = Dispatcher()

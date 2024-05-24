@@ -15,6 +15,12 @@ def init_database():
             name VARCHAR NOT NULL
         )
     ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS chat_list (
+        id SERIAL PRIMARY KEY,
+        chat_id VARCHAR NOT NULL UNIQUE
+        )
+    ''')
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS invitation_links (
