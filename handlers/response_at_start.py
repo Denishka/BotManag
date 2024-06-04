@@ -25,8 +25,7 @@ async def cmd_start(message: types.Message):
     await message.reply("Выберите действие", reply_markup=keyboard)
 
 
-@router.message(lambda message: message.text == "get_chat_id")
-async def get_chat_id(message: Message):
+def get_chat_id(message: Message):
     chat_id = message.chat.id
     insert_chat_query = """
     INSERT INTO chat_list (chat_id)
@@ -35,3 +34,24 @@ async def get_chat_id(message: Message):
     """
     execute_and_commit_query(insert_chat_query, (chat_id,))
     print("Chat ID:", chat_id)
+
+def get_chat_id(message: Message):
+    chat_id = message.chat.id
+    insert_chat_query = """
+    INSERT INTO chat_list (chat_id)
+    VALUES (%s)
+    ON CONFLICT (chat_id) DO NOTHING;
+    """
+    execute_and_commit_query(insert_chat_query, (chat_id,))
+    print("Chat ID:", chat_id)
+
+
+@router.message(lambda message: message.text == "get_chat_id")
+async def get_chat_id_router(message: Message):
+    get_chat_id(message)
+
+
+@router.channel_post(lambda message: message.text == "get_chat_id")
+async def get_channel_id(message: Message):
+    get_chat_id(message)
+
