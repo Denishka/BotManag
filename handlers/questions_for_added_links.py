@@ -1,16 +1,23 @@
 from contextlib import suppress
 from aiogram import F, Router, types
 from aiogram.exceptions import TelegramBadRequest
+from aiogram.fsm.context import FSMContext
+
 from database_manager import get_all_regions, add_links_to_database, add_user_to_regions, get_region_name_by_id
 from filters.changing_regions import RegionFilter
 from handlers.callback_factories import RegionCallbackFactory
 from handlers.questions_for_added_users import selected_regions, forwarded_users
 from keyboards.for_questions import get_keyboard_fab
+from aiogram.filters.state import State, StatesGroup
 
 region = []
 
 region_filter = RegionFilter()
 router = Router()
+
+
+class LinkStates(StatesGroup):
+    waiting_for_description = State()
 
 
 @router.message(F.text.lower() == "добавить ссылки")
@@ -24,14 +31,28 @@ async def with_puree(message: types.Message):
 
 
 @router.message(F.text.lower().startswith("https://t.me/"))
-async def links_received(message: types.Message):
-    links = message.text.split()
+async def links_received(message: types.Message, state: FSMContext):
+    link = message.text.strip()
     region_id = selected_regions.get(message.chat.id)
     if region_id is not None:
-        add_links_to_database(links, region_id)
-        await message.answer("Ссылки успешно добавлены в базу данных.")
+        await state.update_data(link=link, region_id=region_id)
+        await state.set_state(LinkStates.waiting_for_description)
+        await message.answer("Пожалуйста, введите описание для этой ссылки:")
     else:
         await message.answer("Не удалось найти выбранный регион. Пожалуйста, выберите регион снова.")
+
+
+@router.message(LinkStates.waiting_for_description)
+async def link_description_received(message: types.Message, state: FSMContext):
+    description = message.text.strip()
+    user_data = await state.get_data()
+    link = user_data['link']
+    region_id = user_data['region_id']
+
+    add_links_to_database(link, description, region_id)
+
+    await message.answer("Ссылка и описание успешно добавлены в базу данных.")
+    await state.clear()
 
 
 @router.callback_query(RegionCallbackFactory.filter(F.action == "select_one_region"))

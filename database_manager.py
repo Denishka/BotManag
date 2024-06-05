@@ -25,6 +25,7 @@ def init_database():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS invitation_links (
             link TEXT,
+            description TEXT,
             region_id INTEGER REFERENCES regions (id)
         )
     """)
@@ -150,13 +151,13 @@ def get_invite_links_for_region(region_id):
     return [row[0] for row in cursor.fetchall()]
 
 
-def add_links_to_database(links, region_id):
+def add_links_to_database(links, description, region_id):
     conn = get_connection_to_database()
     cursor = conn.cursor()
-    for link in links:
-        cursor.execute("""
-            INSERT INTO invitation_links (link, region_id) VALUES (%s, %s)
-        """, (link, region_id))
+    cursor.execute("""
+        INSERT INTO invitation_links (link, description, region_id)
+        VALUES (%s, %s, %s)
+    """, (links, description, region_id))
     conn.commit()
 
 
@@ -170,15 +171,17 @@ def get_invite_links_for_user(user_id):
         WHERE user_id = %s
     """, (user_id,))
     user_regions = [row[0] for row in cursor.fetchall()]
+
     invite_links = []
     for region_id in user_regions:
         cursor.execute("""
-            SELECT link
+            SELECT link, description
             FROM invitation_links
             WHERE region_id = %s
         """, (region_id,))
-        invite_links.extend([row[0] for row in cursor.fetchall()])
+        invite_links.extend(cursor.fetchall())
 
+    conn.close()
     return invite_links
 
 

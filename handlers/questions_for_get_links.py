@@ -10,7 +10,7 @@ router = Router()
 async def with_puree(message: types.Message, bot: Bot):
     result = get_invite_links_for_user(message.from_user.id)
     if result:
-        result_text = "\n".join(result)
+        result_text = "\n".join([f"{link} - {description}" for link, description in result])
         await bot.send_message(message.from_user.id, result_text)
     else:
         await bot.send_message(message.from_user.id, "Извините, ссылок для вас не найдено.")
