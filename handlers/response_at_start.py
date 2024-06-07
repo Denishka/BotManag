@@ -14,7 +14,7 @@ async def cmd_start(message: types.Message):
 
     if message.from_user.id in AUTHORIZED_USERS:
         kb.append([types.KeyboardButton(text="Удалить пользователя")])
-        kb.append([types.KeyboardButton(text="Добавить ссылки")])
+        kb.append([types.KeyboardButton(text="Добавить ссылку")])
 
     keyboard = types.ReplyKeyboardMarkup(
         keyboard=kb,

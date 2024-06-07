@@ -25,7 +25,7 @@ async def with_puree(message: types.Message):
     regions = get_all_regions()
     keyboard = get_keyboard_fab(regions, action="select_one_region", finish_action="finish2")
     await message.answer(
-        f"В какие регионы вы хотите добавить ссылки-приглашения? Выбранный регион: ",
+        f"В какие регионы вы хотите добавить ссылку-приглашения? Выбранный регион: ",
         reply_markup=keyboard
     )
 
@@ -72,7 +72,7 @@ async def callbacks_region_select(
 async def update_region_text(message: types.Message, new_region: str, regions):
     with suppress(TelegramBadRequest):
         await message.edit_text(
-            f"В какие регионы вы хотите добавить ссылки-приглашения? Выбранный регион: {new_region}",
+            f"В какие регионы вы хотите добавить ссылку-приглашения? Выбранный регион: {new_region}",
             reply_markup=get_keyboard_fab(regions, action="select_one_region", finish_action="finish2")
 
         )
@@ -87,7 +87,7 @@ async def callbacks_region_finish(
         await add_user_to_regions(user_info['user_id'], user_info['username'], user_info['regions'])
         region_names = [get_region_name_by_id(region) for region in user_info['regions']]
         await callback.message.edit_text(
-            f"Выбор регионов завершен. Выбранные регионы: {', '.join(region_names)}. Теперь отправьте ссылки в чат.")
+            f"Выбор регионов завершен. Выбранные регионы: {', '.join(region_names)}. Теперь отправьте ссылку в чат.")
         selected_regions[callback.message.chat.id] = user_info['region']
     else:
         await callback.message.edit_text("Выбор регионов завершен, отправьте ссылки для добавления")
